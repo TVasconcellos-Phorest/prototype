@@ -1,0 +1,967 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Phorest — Purchase</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root { --blue: #BFDBFE; --yellow: #FCD34D; }
+  html, body { font-family: 'Inter', system-ui, sans-serif; height: 100%; margin: 0; }
+  body { background: #f9fafb; color: #000; }
+  /* Hide native number-input arrows on the small split inputs only when needed; keep default for table */
+  .slideover-panel { animation: slideIn 220ms ease-out; }
+  @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+  /* Secondary button style — matches design system: 1px black border, 2px bottom, 40px height */
+  .btn-primary {
+    height: 40px; padding: 0 16px; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    border-radius: 4px; background: #fbbf24; border: 1px solid #000; border-bottom-width: 2px;
+    color: #000; font-size: 14px; font-weight: 500; cursor: pointer; transition: background-color 120ms;
+  }
+  .btn-primary:hover { background: #f59e0b; }
+  .btn-primary:disabled { background: #e5e7eb; border-color: #d1d5db; color: #9ca3af; cursor: not-allowed; }
+  .btn-secondary {
+    height: 40px; padding: 0 16px; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    border-radius: 4px; background: #fff; border: 1px solid #000; border-bottom-width: 2px;
+    color: #000; font-size: 14px; font-weight: 500; cursor: pointer; transition: background-color 120ms;
+  }
+  .btn-secondary:hover { background: #f9fafb; }
+  .btn-secondary:disabled { opacity: 0.4; cursor: not-allowed; }
+  .input-field {
+    display: flex; align-items: center; gap: 8px; padding: 0 12px; height: 40px;
+    background: #fff; border: 1px solid #9ca3af; border-radius: 4px;
+  }
+  .input-field input {
+    flex: 1; min-width: 0; font-size: 14px; outline: none; background: transparent; border: 0; color: #000;
+  }
+  .input-field input::placeholder { color: #9ca3af; }
+  .icon { width: 20px; height: 20px; flex-shrink: 0; stroke-width: 1.75; }
+  .icon-sm { width: 16px; height: 16px; flex-shrink: 0; stroke-width: 1.75; }
+  /* Sidebar */
+  .sidebar {
+    width: 60px; background: linear-gradient(180deg, #009F6E, #019A6C);
+    display: flex; flex-direction: column; align-items: center; padding: 12px 8px; gap: 8px; flex-shrink: 0;
+  }
+  .sidebar-icon-btn {
+    width: 100%; height: 44px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,0.2); cursor: pointer;
+  }
+  .sidebar-icon-btn.active { background: white; }
+  /* Hide scrollbar visually but keep functionality */
+  .scrollable { scrollbar-width: thin; }
+</style>
+</head>
+<body>
+<div id="app" class="h-screen flex"></div>
+
+<script>
+/* ---------- Mock data ---------- */
+const ROSTERED_STAFF = [
+  { id: "ag", name: "Ashleigh Gottlieb", role: "Senior Stylist", initials: "AG", color: "#fde68a" },
+  { id: "mb", name: "Maria Bell",       role: "Stylist",          initials: "MB", color: "#bfdbfe" },
+  { id: "jc", name: "Javier Costa",     role: "Colour Specialist", initials: "JC", color: "#fecaca" },
+  { id: "nl", name: "Natalie Lopez",    role: "Senior Stylist",    initials: "NL", color: "#bbf7d0" },
+  { id: "cm", name: "Carolina Mendes",  role: "Stylist",          initials: "CM", color: "#ddd6fe" },
+  { id: "tk", name: "Tomás Klein",      role: "Junior Stylist",    initials: "TK", color: "#fed7aa" },
+  { id: "rh", name: "Rachel Hayes",     role: "Therapist",        initials: "RH", color: "#fbcfe8" },
+];
+const PRODUCTS = [
+  { id: "p1", name: "10% Glycolic Serum",          brand: "Dr Dennis Gross", price: 88.00 },
+  { id: "p2", name: "Hydrating Cleanser",          brand: "Face Reality",    price: 32.00 },
+  { id: "p3", name: "K18 Leave-In Mask",           brand: "K18",             price: 75.00 },
+  { id: "p4", name: "Vitamin C Brightening Serum", brand: "Dr Dennis Gross", price: 92.00 },
+  { id: "p5", name: "Soothing Toner",              brand: "Face Reality",    price: 28.00 },
+  { id: "p6", name: "Repair Conditioner",          brand: "Amika",           price: 34.00 },
+];
+const COMMISSION_RATE = 0.10;
+const CURRENT_STAFF_ID = "ag";
+
+/* ---------- App state ---------- */
+const state = {
+  items: [],                       // {id, productId, name, brand, price, quantity, splits:[{staffId,split,credited,commission}]}
+  openMenuId: null,
+  editingItemId: null,
+  stage: "none",                   // 'none' | 'commission' | 'products'
+  selectedStaffIds: [CURRENT_STAFF_ID],
+  staffSearch: "",
+  productSearch: "",
+  showAddStaff: false,
+};
+
+/* ---------- Tiny helpers ---------- */
+function h(tag, props, ...children) {
+  const el = document.createElement(tag);
+  if (props) {
+    for (const [k, v] of Object.entries(props)) {
+      if (k === "class") el.className = v;
+      else if (k === "style" && typeof v === "object") Object.assign(el.style, v);
+      else if (k.startsWith("on") && typeof v === "function") el.addEventListener(k.slice(2).toLowerCase(), v);
+      else if (v === true) el.setAttribute(k, "");
+      else if (v !== false && v != null) el.setAttribute(k, v);
+    }
+  }
+  for (const c of children.flat()) {
+    if (c == null || c === false) continue;
+    el.appendChild(typeof c === "string" || typeof c === "number" ? document.createTextNode(c) : c);
+  }
+  return el;
+}
+
+/* ---------- Icons (heroicons outline + lucide), inline SVG ---------- */
+const iconPaths = {
+  star:    `<path d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"/>`,
+  hand:    `<path d="M10.05 4.575a1.575 1.575 0 10-3.15 0v3m3.15-3v-1.5a1.575 1.575 0 013.15 0v1.5m-3.15 0l.075 5.925m3.075.75V4.575m0 0a1.575 1.575 0 013.15 0V15M6.9 7.575a1.575 1.575 0 10-3.15 0v8.175a6.75 6.75 0 006.75 6.75h2.018a5.25 5.25 0 003.712-1.538l1.732-1.732a5.25 5.25 0 001.538-3.712l.003-2.024a.668.668 0 01.198-.471 1.575 1.575 0 10-2.228-2.228 3.818 3.818 0 00-1.12 2.687"/>`,
+  gallery: `<rect x="2" y="6" width="14" height="12" rx="2"/><path d="M19 7v10"/><path d="M22 8v8"/>`,
+  tag:     `<path d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z"/><path d="M6 6h.008v.008H6V6z"/>`,
+  gift:    `<path d="M21 11.25v8.25a1.5 1.5 0 01-1.5 1.5H5.25a1.5 1.5 0 01-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 109.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1114.625 7.5H12m0 0V21m-8.625-9.75h18c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125h-18c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"/>`,
+  crown:   `<path d="M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z"/><path d="M5 21h14"/>`,
+  x:       `<path d="M6 18L18 6M6 6l12 12"/>`,
+  arrowL:  `<path d="M19 12H5m0 0l7 7m-7-7l7-7"/>`,
+  chevR:   `<path d="M9 18l6-6-6-6"/>`,
+  search:  `<path d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/>`,
+  user:    `<path d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/>`,
+  phone:   `<path d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"/>`,
+  mail:    `<path d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"/>`,
+  cart:    `<path d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z"/>`,
+  more:    `<circle cx="12" cy="6" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="18" r="1.5"/>`,
+  plus:    `<path d="M12 4.5v15m7.5-7.5h-15"/>`,
+  trash:   `<path d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/>`,
+  alert:   `<path d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>`,
+  check:   `<path d="M5 13l4 4L19 7"/>`,
+};
+function svgIcon(name, cls = "icon", strokeColor = "currentColor", fillColor = "none") {
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("fill", fillColor);
+  svg.setAttribute("stroke", strokeColor);
+  svg.setAttribute("stroke-linecap", "round");
+  svg.setAttribute("stroke-linejoin", "round");
+  svg.setAttribute("stroke-width", "1.75");
+  svg.setAttribute("class", cls);
+  svg.innerHTML = iconPaths[name] || "";
+  return svg;
+}
+
+/* ---------- Logo (signature mark) ---------- */
+function SalonLogo() {
+  const wrap = h("div", { style: { background: "white", borderRadius: "8px", width: "40px", height: "40px", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "2px" } });
+  wrap.innerHTML = `<svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+    <path d="M5 22 C 8 14, 11 10, 14 12 C 16 13, 14 18, 12 19 C 10 20, 9 17, 12 14 C 16 10, 21 9, 24 12 C 26 14, 24 18, 21 18"
+      stroke="#EC4899" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="25" cy="20" r="1.4" fill="#EC4899"/>
+  </svg>`;
+  return wrap;
+}
+
+/* ---------- Staff portrait (used in Staff button) ---------- */
+function StaffPortrait(size = 32) {
+  const wrap = h("div", { class: "rounded-full overflow-hidden shrink-0", style: { width: size + "px", height: size + "px" } });
+  wrap.innerHTML = `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;display:block">
+    <defs><linearGradient id="bgGrad${size}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fde68a"/><stop offset="100%" stop-color="#fbbf24"/>
+    </linearGradient></defs>
+    <rect width="64" height="64" fill="url(#bgGrad${size})"/>
+    <path d="M14 30c0-12 8-20 18-20s18 8 18 20v18H14z" fill="#3f2417"/>
+    <rect x="27" y="44" width="10" height="10" rx="3" fill="#e8b591"/>
+    <ellipse cx="32" cy="32" rx="13" ry="15" fill="#f2c6a0"/>
+    <path d="M19 26c2-8 7-12 13-12s11 4 13 12c-3-2-7-3-13-3s-10 1-13 3z" fill="#3f2417"/>
+    <ellipse cx="27" cy="33" rx="1.4" ry="1.8" fill="#2b1d12"/>
+    <ellipse cx="37" cy="33" rx="1.4" ry="1.8" fill="#2b1d12"/>
+    <circle cx="24" cy="38" r="1.5" fill="#f1a591" opacity="0.6"/>
+    <circle cx="40" cy="38" r="1.5" fill="#f1a591" opacity="0.6"/>
+    <path d="M28 40c1.5 1.5 6.5 1.5 8 0" stroke="#7a3a2a" stroke-width="1.4" stroke-linecap="round" fill="none"/>
+    <path d="M10 56c4-6 12-9 22-9s18 3 22 9v8H10z" fill="#1f2937"/>
+  </svg>`;
+  return wrap;
+}
+
+/* ---------- Initials avatar (for other staff) ---------- */
+function Avatar(staff, size = 28) {
+  return h("div", {
+    class: "rounded-full flex items-center justify-center text-xs font-semibold text-gray-800 shrink-0",
+    style: { background: staff.color, width: size + "px", height: size + "px", fontSize: Math.round(size * 0.36) + "px" }
+  }, staff.initials);
+}
+
+/* ---------- Sidebar ---------- */
+function Sidebar() {
+  const root = h("div", { class: "sidebar" });
+  root.appendChild(SalonLogo());
+
+  // Time
+  const time = h("div", { style: { color: "white", textAlign: "center", marginBottom: "4px" } });
+  time.innerHTML = `<div style="font-size:13px;font-weight:700">23:06</div><div style="font-size:11px;font-weight:500">6 May</div>`;
+  root.appendChild(time);
+
+  const mainGroup = h("div", { style: { display: "flex", flexDirection: "column", gap: "8px", flex: "1", width: "100%" } });
+  const mainSvgPaths = [
+    { fr: 'evenodd', d: 'M6.75 2.25A.75.75 0 0 1 7.5 3v1.5h9V3A.75.75 0 0 1 18 3v1.5h.75a3 3 0 0 1 3 3v11.25a3 3 0 0 1-3 3H5.25a3 3 0 0 1-3-3V7.5a3 3 0 0 1 3-3H6V3a.75.75 0 0 1 .75-.75zm13.5 9a.75.75 0 0 0-.75-.75H4.5a.75.75 0 0 0 0 1.5h15a.75.75 0 0 0 .75-.75z' },
+    { fr: 'evenodd', d: 'M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0zM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695z' },
+    { d: 'M16.881 4.346A23.112 23.112 0 0 1 8.25 6H7.5a5.25 5.25 0 0 0-.88 10.427 21.593 21.593 0 0 0 1.378 3.94c.464 1.004 1.674 1.32 2.582.796l.657-.379c.88-.508 1.165-1.593.772-2.468a17.116 17.116 0 0 1-.628-1.607c1.918.258 3.76.75 5.5 1.446V4.346zM18.75 7.5l-.387.215a.522.522 0 0 0 0 .914L18.75 8.853V7.5zM20.25 5.507a.75.75 0 0 1 .75.75v11.486a.75.75 0 0 1-1.5 0V6.257a.75.75 0 0 1 .75-.75zM18.75 16.354v-1.353l.387-.215a.522.522 0 0 1 0-.914L18.75 13.66v-1.353a.5.5 0 0 1 .5-.5h.5v5.046h-.5a.5.5 0 0 1-.5-.5z' },
+    { fr: 'evenodd', d: 'M7.5 6v.75H5.513c-.96 0-1.764.724-1.865 1.679l-1.263 12A1.875 1.875 0 0 0 4.25 22.5h15.5a1.875 1.875 0 0 0 1.865-2.071l-1.263-12a1.875 1.875 0 0 0-1.865-1.679H16.5V6a4.5 4.5 0 1 0-9 0zm4.5-1.5a3 3 0 0 0-3 3v.75h6V7.5a3 3 0 0 0-3-3zm-3 8.25a3 3 0 1 0 6 0 3 3 0 0 0-6 0z' },
+    { d: 'M11.484 2.17a.75.75 0 0 1 1.032 0 11.209 11.209 0 0 0 7.877 3.079.75.75 0 0 1 .722.515 12.74 12.74 0 0 1 .635 3.985c0 5.942-4.064 10.933-9.563 12.348a.749.749 0 0 1-.374 0C6.314 20.683 2.25 15.692 2.25 9.75c0-1.39.223-2.73.635-3.985a.75.75 0 0 1 .722-.516l.143.001c2.996 0 5.718-1.17 7.734-3.08z' },
+  ];
+  mainSvgPaths.forEach((p, i) => {
+    const isActive = i === 3; // cart
+    const btn = h("div", { class: "sidebar-icon-btn" + (isActive ? " active" : "") });
+    const fill = isActive ? "#000" : "rgba(255,255,255,0.8)";
+    const fr = p.fr ? `fill-rule="${p.fr}" clip-rule="evenodd"` : "";
+    btn.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24"><path ${fr} d="${p.d}" fill="${fill}"/></svg>`;
+    mainGroup.appendChild(btn);
+  });
+  root.appendChild(mainGroup);
+
+  const btmGroup = h("div", { style: { display: "flex", flexDirection: "column", gap: "8px", width: "100%" } });
+  const btmSvgPaths = [
+    { fr: 'evenodd', d: 'M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zM12.75 6a.75.75 0 0 0-1.5 0v6c0 .414.336.75.75.75h4.5a.75.75 0 0 0 0-1.5h-3.75V6z' },
+    { fr: 'evenodd', d: 'M19.449 8.448 16.388 11.51a4.459 4.459 0 0 1 0 .978l3.061 3.062a8.25 8.25 0 0 0 0-7.103zM15.552 19.45 12.49 16.389a4.459 4.459 0 0 1-.978 0l-3.062 3.061a8.25 8.25 0 0 0 7.103 0zM4.55 15.552l3.062-3.062a4.459 4.459 0 0 1 0-.978L4.55 8.45a8.25 8.25 0 0 0 0 7.103zM8.448 4.55l3.062 3.062a4.459 4.459 0 0 1 .978 0L15.55 4.55a8.25 8.25 0 0 0-7.103 0zM2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm9.75-3a3 3 0 1 0 0 6 3 3 0 0 0 0-6z' },
+    { fr: 'evenodd', d: 'M12 1.5a5.25 5.25 0 0 0-5.25 5.25v3a3 3 0 0 0-3 3v6.75a3 3 0 0 0 3 3h10.5a3 3 0 0 0 3-3v-6.75a3 3 0 0 0-3-3v-3c0-2.9-2.35-5.25-5.25-5.25zm3.75 8.25v-3a3.75 3.75 0 1 0-7.5 0v3h7.5z' },
+  ];
+  btmSvgPaths.forEach(p => {
+    const btn = h("div", { class: "sidebar-icon-btn" });
+    const fr = p.fr ? `fill-rule="${p.fr}" clip-rule="evenodd"` : "";
+    btn.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24"><path ${fr} d="${p.d}" fill="rgba(255,255,255,0.8)"/></svg>`;
+    btmGroup.appendChild(btn);
+  });
+  root.appendChild(btmGroup);
+  return root;
+}
+
+/* ---------- Reusable buttons / inputs ---------- */
+function btnPrimary({ onClick, disabled, children }) {
+  const b = h("button", { class: "btn-primary", onclick: onClick, disabled: disabled ? true : undefined });
+  for (const c of [].concat(children)) b.appendChild(typeof c === "string" ? document.createTextNode(c) : c);
+  return b;
+}
+function btnSecondary({ onClick, disabled, children, full = false }) {
+  const b = h("button", { class: "btn-secondary" + (full ? " w-full" : ""), onclick: onClick, disabled: disabled ? true : undefined });
+  for (const c of [].concat(children)) b.appendChild(typeof c === "string" ? document.createTextNode(c) : c);
+  return b;
+}
+function inputField({ value = "", placeholder = "", iconName, onInput, className = "" }) {
+  const wrap = h("div", { class: "input-field " + className });
+  if (iconName) {
+    const ic = svgIcon(iconName, "icon", "#9ca3af");
+    wrap.appendChild(ic);
+  }
+  const input = h("input", { type: "text", value, placeholder });
+  if (onInput) input.addEventListener("input", e => onInput(e.target.value));
+  wrap.appendChild(input);
+  return wrap;
+}
+
+/* ---------- Slideover ----------
+   Keeps the panel mounted across state updates so the slide-in animation
+   only plays once. Subsequent calls patch the title/body/footer in place. */
+let slideoverEl = null;
+let slideoverParts = null; // { titleEl, bodyEl, footerEl, headerEl, backHandler, closeHandler }
+
+function openSlideover({ title, onClose, onBack, contentEl, footerEl, width = 480 }) {
+  // If a slideover is already open, patch its contents in place instead of recreating.
+  if (slideoverEl && slideoverParts) {
+    slideoverParts.titleEl.textContent = title;
+
+    // Update back button presence
+    const headerEl = slideoverParts.headerEl;
+    const existingBack = slideoverParts.backBtn;
+    if (onBack && !existingBack) {
+      const back = h("button", {
+        class: "rounded border border-black bg-white flex items-center justify-center hover:bg-gray-50 shrink-0",
+        style: { width: "36px", height: "36px", borderBottomWidth: "2px" },
+        onclick: () => { closeSlideover(); onBack(); }
+      });
+      back.appendChild(svgIcon("arrowL", "icon-sm", "#000"));
+      headerEl.insertBefore(back, headerEl.firstChild);
+      slideoverParts.backBtn = back;
+    } else if (!onBack && existingBack) {
+      existingBack.remove();
+      slideoverParts.backBtn = null;
+    } else if (onBack && existingBack) {
+      // Refresh handler so it points to the new onBack
+      const fresh = existingBack.cloneNode(true);
+      fresh.addEventListener("click", () => { closeSlideover(); onBack(); });
+      existingBack.replaceWith(fresh);
+      slideoverParts.backBtn = fresh;
+    }
+
+    // Refresh close handler
+    slideoverParts.closeBtn.replaceWith(slideoverParts.closeBtn.cloneNode(true));
+    const newClose = headerEl.lastChild;
+    newClose.addEventListener("click", () => { closeSlideover(); onClose && onClose(); });
+    slideoverParts.closeBtn = newClose;
+
+    // Replace body content
+    slideoverParts.bodyEl.innerHTML = "";
+    slideoverParts.bodyEl.appendChild(contentEl);
+
+    // Replace/remove footer
+    if (footerEl) {
+      slideoverParts.footerEl.innerHTML = "";
+      slideoverParts.footerEl.appendChild(footerEl);
+      slideoverParts.footerEl.style.display = "";
+    } else {
+      slideoverParts.footerEl.innerHTML = "";
+      slideoverParts.footerEl.style.display = "none";
+    }
+
+    // Update width if it changed
+    slideoverParts.panel.style.width = width + "px";
+
+    // Update backdrop click handler
+    slideoverParts.backdrop.replaceWith(slideoverParts.backdrop.cloneNode(true));
+    const newBackdrop = slideoverEl.firstChild;
+    newBackdrop.addEventListener("click", () => { closeSlideover(); onClose && onClose(); });
+    slideoverParts.backdrop = newBackdrop;
+
+    return;
+  }
+
+  // First open — build the structure and play the animation.
+  const overlay = h("div", { class: "fixed inset-0 z-50", style: { fontFamily: "Inter, sans-serif" } });
+  const backdrop = h("div", { class: "absolute inset-0", style: { background: "rgba(0,0,0,0.4)" }, onclick: () => { closeSlideover(); onClose && onClose(); } });
+  overlay.appendChild(backdrop);
+
+  const panel = h("div", {
+    class: "absolute top-0 right-0 bottom-0 bg-white shadow-2xl flex flex-col slideover-panel",
+    style: { width: width + "px", maxWidth: "100vw" }
+  });
+
+  const headerEl = h("div", { class: "flex items-center gap-3 px-5 border-b border-gray-200 shrink-0", style: { height: "64px" } });
+
+  let backBtn = null;
+  if (onBack) {
+    backBtn = h("button", {
+      class: "rounded border border-black bg-white flex items-center justify-center hover:bg-gray-50 shrink-0",
+      style: { width: "36px", height: "36px", borderBottomWidth: "2px" },
+      onclick: () => { closeSlideover(); onBack(); }
+    });
+    backBtn.appendChild(svgIcon("arrowL", "icon-sm", "#000"));
+    headerEl.appendChild(backBtn);
+  }
+  const titleEl = h("h2", { class: "text-lg font-semibold flex-1 min-w-0 truncate" }, title);
+  headerEl.appendChild(titleEl);
+  const closeBtn = h("button", {
+    class: "rounded hover:bg-gray-100 flex items-center justify-center shrink-0",
+    style: { width: "32px", height: "32px" },
+    onclick: () => { closeSlideover(); onClose && onClose(); }
+  });
+  closeBtn.appendChild(svgIcon("x", "icon", "#000"));
+  headerEl.appendChild(closeBtn);
+  panel.appendChild(headerEl);
+
+  const bodyEl = h("div", { class: "flex-1 overflow-y-auto overflow-x-hidden" });
+  bodyEl.appendChild(contentEl);
+  panel.appendChild(bodyEl);
+
+  const footerWrap = h("div", { class: "border-t border-gray-200 px-5 py-4 shrink-0 bg-white" });
+  if (footerEl) {
+    footerWrap.appendChild(footerEl);
+  } else {
+    footerWrap.style.display = "none";
+  }
+  panel.appendChild(footerWrap);
+
+  overlay.appendChild(panel);
+  document.body.appendChild(overlay);
+  slideoverEl = overlay;
+  slideoverParts = { panel, headerEl, titleEl, bodyEl, footerEl: footerWrap, backBtn, closeBtn, backdrop };
+}
+function closeSlideover() {
+  if (slideoverEl) { slideoverEl.remove(); slideoverEl = null; slideoverParts = null; }
+}
+
+/* ---------- Step 1: Commission split (staff picker) ---------- */
+function openCommissionStep() {
+  state.staffSearch = "";
+  // Ensure currentStaff pre-selected
+  if (!state.selectedStaffIds.includes(CURRENT_STAFF_ID)) state.selectedStaffIds = [CURRENT_STAFF_ID];
+
+  function render() {
+    const content = h("div", { class: "p-5 space-y-4" });
+
+    const alert = h("div", { class: "flex gap-3 p-4 rounded", style: { background: "#fffbeb", border: "1px solid #fcd34d" } });
+    alert.appendChild(svgIcon("alert", "icon shrink-0 mt-0.5", "#b45309"));
+    alert.appendChild(h("p", { class: "text-sm leading-5", style: { color: "#78350f" } },
+      "Who should receive commission on these retail products? Select one or more staff members. The sale amount will be split evenly."
+    ));
+    content.appendChild(alert);
+
+    const search = inputField({
+      value: state.staffSearch,
+      placeholder: "Search staff",
+      iconName: "search",
+      onInput: v => { state.staffSearch = v; rerender(); },
+      className: "w-full"
+    });
+    content.appendChild(search);
+
+    const list = h("div", { class: "space-y-1" });
+    list.appendChild(h("p", { class: "text-xs font-medium text-gray-500 uppercase tracking-wide px-1 pb-1" }, "Rostered staff"));
+
+    const filtered = ROSTERED_STAFF.filter(s => s.name.toLowerCase().includes(state.staffSearch.toLowerCase()));
+    filtered.forEach(staff => {
+      const checked = state.selectedStaffIds.includes(staff.id);
+      const isCurrent = staff.id === CURRENT_STAFF_ID;
+      const row = h("button", {
+        class: "w-full flex items-center gap-3 px-3 py-2.5 rounded border text-left transition-colors " +
+               (checked ? "bg-amber-50" : "hover:bg-gray-50"),
+        style: { borderColor: checked ? "#000" : "#e5e7eb" },
+        onclick: () => {
+          state.selectedStaffIds = checked
+            ? state.selectedStaffIds.filter(x => x !== staff.id)
+            : [...state.selectedStaffIds, staff.id];
+          rerender();
+        }
+      });
+
+      const cb = h("div", {
+        class: "rounded shrink-0 flex items-center justify-center",
+        style: {
+          width: "20px", height: "20px",
+          background: checked ? "#000" : "#fff",
+          border: checked ? "2px solid #000" : "2px solid #9ca3af"
+        }
+      });
+      if (checked) cb.appendChild(svgIcon("check", "icon-sm", "#fff"));
+      row.appendChild(cb);
+      row.appendChild(Avatar(staff, 36));
+
+      const meta = h("div", { class: "flex-1 text-left" });
+      const nameRow = h("div", { class: "text-sm font-medium flex items-center gap-2" }, staff.name);
+      if (isCurrent) {
+        nameRow.appendChild(h("span", {
+          class: "uppercase tracking-wide text-white px-1.5 py-0.5 rounded",
+          style: { background: "#111827", fontSize: "10px", fontWeight: "600" }
+        }, "Current"));
+      }
+      meta.appendChild(nameRow);
+      meta.appendChild(h("div", { class: "text-xs text-gray-500" }, staff.role));
+      row.appendChild(meta);
+
+      list.appendChild(row);
+    });
+    content.appendChild(list);
+
+    const footer = h("div", { class: "flex justify-end gap-3" });
+    footer.appendChild(btnSecondary({ onClick: () => closeSlideover(), children: "Cancel" }));
+    footer.appendChild(btnPrimary({
+      onClick: () => { state.stage = "products"; closeSlideover(); openProductsStep(); },
+      disabled: state.selectedStaffIds.length === 0,
+      children: `Next (${state.selectedStaffIds.length})`
+    }));
+
+    openSlideover({ title: "Commission split", contentEl: content, footerEl: footer, width: 480 });
+  }
+  function rerender() { render(); }
+  render();
+}
+
+/* ---------- Step 2: Products ---------- */
+function openProductsStep() {
+  state.productSearch = "";
+
+  function render() {
+    const content = h("div", { class: "p-5 space-y-4" });
+
+    const search = inputField({
+      value: state.productSearch,
+      placeholder: "Scan barcode or search for any product",
+      iconName: "search",
+      onInput: v => { state.productSearch = v; rerender(); },
+      className: "w-full"
+    });
+    content.appendChild(search);
+
+    const list = h("div", { class: "space-y-1" });
+    const q = state.productSearch.toLowerCase();
+    const filtered = PRODUCTS.filter(p => p.name.toLowerCase().includes(q) || p.brand.toLowerCase().includes(q));
+    filtered.forEach(product => {
+      const row = h("button", {
+        class: "w-full flex items-center gap-3 px-3 py-3 hover:bg-gray-50 border-b border-gray-100 text-left",
+        onclick: () => { selectProduct(product); }
+      });
+      const initials = product.brand.split(" ").map(w => w[0]).join("").slice(0, 2);
+      row.appendChild(h("div", {
+        class: "rounded-full bg-gray-200 flex items-center justify-center text-xs font-semibold text-gray-700 shrink-0",
+        style: { width: "36px", height: "36px" }
+      }, initials));
+
+      const meta = h("div", { class: "flex-1 min-w-0" });
+      meta.appendChild(h("div", { class: "text-sm font-medium truncate" }, product.name));
+      meta.appendChild(h("div", { class: "text-xs text-gray-500 truncate" }, product.brand));
+      row.appendChild(meta);
+
+      row.appendChild(h("div", { class: "text-sm font-medium" }, "$" + product.price.toFixed(2)));
+      row.appendChild(svgIcon("chevR", "icon-sm", "#9ca3af"));
+      list.appendChild(row);
+    });
+    content.appendChild(list);
+
+    openSlideover({
+      title: "Products",
+      contentEl: content,
+      onBack: () => { state.stage = "commission"; openCommissionStep(); },
+      width: 480
+    });
+  }
+  function rerender() { render(); }
+  render();
+}
+
+function selectProduct(product) {
+  const splitPct = 100 / state.selectedStaffIds.length;
+  const splits = state.selectedStaffIds.map(id => {
+    const credited = round2((product.price * splitPct) / 100);
+    return {
+      staffId: id,
+      split: round2(splitPct),
+      credited,
+      commission: round2(credited * COMMISSION_RATE)
+    };
+  });
+  state.items.push({
+    id: `${product.id}-${Date.now()}`,
+    productId: product.id,
+    name: product.name,
+    brand: product.brand,
+    price: product.price,
+    quantity: 1,
+    splits
+  });
+  state.stage = "none";
+  closeSlideover();
+  renderApp();
+}
+
+function round2(n) { return Math.round(n * 100) / 100; }
+
+/* ---------- Step 3: Edit Commission Split ---------- */
+function openEditSplit(itemId) {
+  state.editingItemId = itemId;
+  state.showAddStaff = false;
+  const item = state.items.find(i => i.id === itemId);
+  let splits = item.splits.map(s => ({ ...s }));
+
+  function recalc() {
+    splits.forEach(s => {
+      s.credited = round2((item.price * s.split) / 100);
+      s.commission = round2(s.credited * COMMISSION_RATE);
+    });
+  }
+
+  function updateSplit(index, raw) {
+    const value = Math.max(0, Math.min(100, Number(raw) || 0));
+    splits[index].split = value;
+    const remaining = 100 - value;
+    const others = splits.filter((_, i) => i !== index);
+    const othersTotal = others.reduce((sum, s) => sum + s.split, 0);
+    if (others.length > 0) {
+      if (othersTotal > 0) {
+        others.forEach(s => { s.split = round2((s.split / othersTotal) * remaining); });
+      } else {
+        const each = remaining / others.length;
+        others.forEach(s => { s.split = round2(each); });
+      }
+    }
+    recalc();
+  }
+
+  function addStaff(staff) {
+    if (splits.find(s => s.staffId === staff.id)) { state.showAddStaff = false; rerender(); return; }
+    const newSplit = round2(100 / (splits.length + 1));
+    splits = splits.map(s => ({ ...s, split: newSplit }));
+    splits.push({ staffId: staff.id, split: newSplit, credited: 0, commission: 0 });
+    recalc();
+    state.showAddStaff = false;
+    rerender();
+  }
+
+  function removeStaff(index) {
+    if (splits.length <= 1) return;
+    splits.splice(index, 1);
+    const each = round2(100 / splits.length);
+    splits.forEach(s => { s.split = each; });
+    recalc();
+    rerender();
+  }
+
+  function render() {
+    const content = h("div", { class: "p-5 space-y-6" });
+
+    /* Product details */
+    const pSection = h("div");
+    pSection.appendChild(h("p", { class: "text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2" }, "Product details"));
+    const pCard = h("div", { class: "border border-gray-200 rounded p-4 flex items-center gap-3" });
+    const pInitials = item.brand.split(" ").map(w => w[0]).join("").slice(0, 2);
+    pCard.appendChild(h("div", {
+      class: "rounded-full bg-gray-200 flex items-center justify-center text-xs font-semibold text-gray-700 shrink-0",
+      style: { width: "40px", height: "40px" }
+    }, pInitials));
+    const pMeta = h("div", { class: "flex-1 min-w-0" });
+    pMeta.appendChild(h("div", { class: "text-sm font-medium truncate" }, item.name));
+    pMeta.appendChild(h("div", { class: "text-xs text-gray-500 truncate" }, `${item.brand} · Qty ${item.quantity}`));
+    pCard.appendChild(pMeta);
+    pCard.appendChild(h("div", { class: "text-sm font-semibold" }, "$" + item.price.toFixed(2)));
+    pSection.appendChild(pCard);
+    content.appendChild(pSection);
+
+    /* Sale attribution */
+    const attrSection = h("div");
+    const totalSplit = splits.reduce((s, x) => s + x.split, 0);
+    const totalCredited = splits.reduce((s, x) => s + x.credited, 0);
+    const totalCommission = splits.reduce((s, x) => s + x.commission, 0);
+    const headRow = h("div", { class: "flex items-center justify-between mb-2" });
+    headRow.appendChild(h("p", { class: "text-xs font-semibold uppercase tracking-wide text-gray-500" }, "Sale attribution & commission breakdown"));
+    headRow.appendChild(h("span", {
+      class: "text-xs font-semibold",
+      style: { color: Math.abs(totalSplit - 100) < 0.5 ? "#15803d" : "#dc2626" }
+    }, `Total: ${totalSplit.toFixed(1)}%`));
+    attrSection.appendChild(headRow);
+
+    const tableWrap = h("div", { class: "border border-gray-200 rounded overflow-hidden" });
+    const table = h("table", { class: "w-full table-fixed border-collapse" });
+    const colgroup = h("colgroup");
+    [["40%"], ["20%"], ["18%"], ["18%"], ["4%"]].forEach(([w]) => colgroup.appendChild(h("col", { style: { width: w } })));
+    table.appendChild(colgroup);
+
+    const thead = h("thead");
+    const trH = h("tr", { class: "text-white text-xs font-semibold", style: { background: "#0c4a6e" } });
+    ["Staff", "Split", "Credited", "Commission", ""].forEach(label => {
+      trH.appendChild(h("th", { class: "px-3 text-left font-semibold", style: { height: "40px" } }, label));
+    });
+    thead.appendChild(trH);
+    table.appendChild(thead);
+
+    const tbody = h("tbody");
+    splits.forEach((s, i) => {
+      const staff = ROSTERED_STAFF.find(st => st.id === s.staffId);
+      const tr = h("tr", { class: "border-t border-gray-100 hover:bg-gray-50" });
+
+      const tdStaff = h("td", { class: "px-3 py-2 align-middle" });
+      const stWrap = h("div", { class: "flex items-center gap-2 min-w-0" });
+      stWrap.appendChild(Avatar(staff, 28));
+      stWrap.appendChild(h("span", { class: "text-sm truncate" }, staff.name));
+      tdStaff.appendChild(stWrap);
+      tr.appendChild(tdStaff);
+
+      const tdSplit = h("td", { class: "px-3 py-2 align-middle" });
+      const sWrap = h("div", { class: "flex items-center gap-1" });
+      const inp = h("input", {
+        type: "number", min: "0", max: "100", step: "1",
+        class: "px-2 py-1 border border-gray-400 rounded text-sm bg-white text-right",
+        style: { width: "64px" },
+        value: String(s.split)
+      });
+      inp.addEventListener("input", e => { updateSplit(i, e.target.value); rerender(); });
+      sWrap.appendChild(inp);
+      sWrap.appendChild(h("span", { class: "text-sm text-gray-500" }, "%"));
+      tdSplit.appendChild(sWrap);
+      tr.appendChild(tdSplit);
+
+      tr.appendChild(h("td", { class: "px-3 py-2 align-middle text-sm" }, "$" + s.credited.toFixed(2)));
+      tr.appendChild(h("td", { class: "px-3 py-2 align-middle text-sm" }, "$" + s.commission.toFixed(2)));
+
+      const tdAct = h("td", { class: "align-middle" });
+      const actWrap = h("div", { class: "flex justify-center" });
+      const rm = h("button", {
+        class: "rounded hover:bg-red-50 flex items-center justify-center",
+        style: { width: "28px", height: "28px" },
+        onclick: () => removeStaff(i),
+        disabled: splits.length <= 1 ? true : undefined
+      });
+      const trashIcon = svgIcon("trash", "icon-sm", "#dc2626");
+      if (splits.length <= 1) rm.style.opacity = "0.3";
+      rm.appendChild(trashIcon);
+      actWrap.appendChild(rm);
+      tdAct.appendChild(actWrap);
+      tr.appendChild(tdAct);
+
+      tbody.appendChild(tr);
+    });
+
+    const totRow = h("tr", { class: "border-t border-gray-200 font-semibold", style: { background: "#f9fafb" } });
+    totRow.appendChild(h("td", { class: "px-3 py-2 align-middle text-sm" }, "Total"));
+    totRow.appendChild(h("td", { class: "px-3 py-2 align-middle text-sm" }, totalSplit.toFixed(1) + "%"));
+    totRow.appendChild(h("td", { class: "px-3 py-2 align-middle text-sm" }, "$" + totalCredited.toFixed(2)));
+    totRow.appendChild(h("td", { class: "px-3 py-2 align-middle text-sm" }, "$" + totalCommission.toFixed(2)));
+    totRow.appendChild(h("td"));
+    tbody.appendChild(totRow);
+    table.appendChild(tbody);
+    tableWrap.appendChild(table);
+    attrSection.appendChild(tableWrap);
+
+    /* Add staff */
+    const availableToAdd = ROSTERED_STAFF.filter(s => !splits.find(sp => sp.staffId === s.id));
+    const addWrap = h("div", { class: "mt-3 relative" });
+    if (!state.showAddStaff) {
+      const btn = btnSecondary({
+        onClick: () => { state.showAddStaff = true; rerender(); },
+        disabled: availableToAdd.length === 0,
+        full: true,
+        children: [svgIcon("plus", "icon-sm", "#000"), " Add Staff Member"]
+      });
+      addWrap.appendChild(btn);
+    } else {
+      const list = h("div", { class: "border border-gray-300 rounded shadow-lg bg-white overflow-hidden" });
+      const lh = h("div", { class: "flex items-center justify-between px-3 py-2 border-b border-gray-100" });
+      lh.appendChild(h("span", { class: "text-xs font-semibold uppercase tracking-wide text-gray-500" }, "Add staff"));
+      const xb = h("button", { class: "text-gray-400 hover:text-black", onclick: () => { state.showAddStaff = false; rerender(); } });
+      xb.appendChild(svgIcon("x", "icon-sm", "currentColor"));
+      lh.appendChild(xb);
+      list.appendChild(lh);
+      availableToAdd.forEach(staff => {
+        const row = h("button", {
+          class: "w-full flex items-center gap-3 px-3 py-2 hover:bg-gray-50 text-left",
+          onclick: () => addStaff(staff)
+        });
+        row.appendChild(Avatar(staff, 28));
+        const m = h("div", { class: "flex-1 min-w-0" });
+        m.appendChild(h("div", { class: "text-sm font-medium truncate" }, staff.name));
+        m.appendChild(h("div", { class: "text-xs text-gray-500 truncate" }, staff.role));
+        row.appendChild(m);
+        list.appendChild(row);
+      });
+      addWrap.appendChild(list);
+    }
+    attrSection.appendChild(addWrap);
+
+    attrSection.appendChild(h("p", { class: "text-xs text-gray-500 mt-3" },
+      "Adjusting any split will redistribute the remaining percentage among the other staff so the total always equals 100%."
+    ));
+    content.appendChild(attrSection);
+
+    /* Footer */
+    const footer = h("div", { class: "flex justify-end gap-3" });
+    footer.appendChild(btnSecondary({ onClick: () => { state.editingItemId = null; closeSlideover(); }, children: "Cancel" }));
+    footer.appendChild(btnPrimary({
+      onClick: () => {
+        const item = state.items.find(i => i.id === state.editingItemId);
+        item.splits = splits.map(s => ({ ...s }));
+        state.editingItemId = null;
+        closeSlideover();
+        renderApp();
+      },
+      children: "Save"
+    }));
+
+    openSlideover({
+      title: "Split commission",
+      contentEl: content,
+      footerEl: footer,
+      width: 600,
+      onClose: () => { state.editingItemId = null; }
+    });
+  }
+  function rerender() { render(); }
+  render();
+}
+
+/* ---------- Main app render ---------- */
+function renderApp() {
+  const root = document.getElementById("app");
+  root.innerHTML = "";
+  root.appendChild(Sidebar());
+
+  const main = h("div", { class: "flex-1 flex flex-col min-w-0 bg-white" });
+
+  /* Header */
+  const header = h("div", { class: "px-6 py-4 border-b border-gray-200 shrink-0" });
+  header.appendChild(h("h1", { class: "text-lg font-semibold" }, "Purchase"));
+  main.appendChild(header);
+
+  /* Middle scroll area */
+  const mid = h("div", { class: "flex-1 flex flex-col min-h-0" });
+
+  /* 1. Client */
+  const clientWrap = h("div", { class: "mx-4 mt-4" });
+  clientWrap.appendChild(h("p", { class: "text-sm font-semibold mb-2" }, "1. Client"));
+  const clientBox = h("div", { class: "p-3 rounded-md", style: { background: "var(--blue)" } });
+  const clientRow = h("div", { class: "flex gap-3 items-center w-full" });
+  const userBtn = btnSecondary({ children: svgIcon("user", "icon-sm", "#000") });
+  userBtn.style.width = "40px";
+  userBtn.style.padding = "0";
+  clientRow.appendChild(userBtn);
+  clientRow.appendChild(inputField({ value: "Sara",                          className: "flex-1" }));
+  clientRow.appendChild(inputField({ value: "Andrade",                       className: "flex-1" }));
+  clientRow.appendChild(inputField({ value: "2027383765", iconName: "phone", className: "flex-1" }));
+  clientRow.appendChild(inputField({ value: "", placeholder: "Email", iconName: "mail", className: "flex-1" }));
+  clientRow.appendChild(btnSecondary({ children: [svgIcon("x", "icon-sm", "#000"), " Clear"] }));
+  clientRow.appendChild(btnSecondary({ children: [svgIcon("user", "icon-sm", "#000"), " Client Card"] }));
+  clientBox.appendChild(clientRow);
+  const obWrap = h("div", { class: "mt-3" });
+  obWrap.appendChild(btnPrimary({ children: "Outstanding Balance $0.00" }));
+  clientBox.appendChild(obWrap);
+  clientWrap.appendChild(clientBox);
+  mid.appendChild(clientWrap);
+
+  /* Two-column area */
+  const cols = h("div", { class: "flex gap-4 px-4 pt-4 flex-1 min-h-0 pb-4" });
+
+  /* Left column: Staff + Add item */
+  const left = h("div", { class: "shrink-0 flex flex-col gap-4", style: { width: "288px" } });
+
+  const staffWrap = h("div");
+  staffWrap.appendChild(h("p", { class: "text-sm font-semibold mb-2" }, "2. Staff"));
+  const staffBox = h("div", { class: "rounded-md p-3", style: { background: "var(--blue)" } });
+  const staffBtn = h("button", {
+    class: "btn-secondary w-full",
+    style: { height: "48px" }
+  });
+  staffBtn.appendChild(StaffPortrait(32));
+  staffBtn.appendChild(h("span", null, "Ashleigh Gottlieb"));
+  staffBox.appendChild(staffBtn);
+  staffWrap.appendChild(staffBox);
+  left.appendChild(staffWrap);
+
+  const addItemWrap = h("div");
+  addItemWrap.appendChild(h("p", { class: "text-sm font-semibold mb-2" }, "3. Add item"));
+  const addBox = h("div", { class: "rounded-md p-3", style: { background: "var(--yellow)" } });
+  const addList = h("div", { class: "space-y-2" });
+  const addItems = [
+    { icon: "star",    label: "Hot Keys" },
+    { icon: "hand",    label: "Services" },
+    { icon: "gallery", label: "Series" },
+    { icon: "tag",     label: "Products", onClick: () => openCommissionStep() },
+    { icon: "gift",    label: "Gift Cards" },
+    { icon: "crown",   label: "Memberships" },
+  ];
+  addItems.forEach(({ icon, label, onClick }) => {
+    const b = h("button", { class: "btn-secondary w-full", onclick: onClick });
+    b.appendChild(svgIcon(icon, "icon-sm", "#000"));
+    b.appendChild(h("span", null, label));
+    addList.appendChild(b);
+  });
+  addBox.appendChild(addList);
+  addItemWrap.appendChild(addBox);
+  left.appendChild(addItemWrap);
+
+  cols.appendChild(left);
+
+  /* Right column: items table */
+  const right = h("div", { class: "flex-1 flex flex-col min-w-0 min-h-0" });
+  const tableShell = h("div", { class: "border border-gray-200 rounded overflow-hidden flex flex-col flex-1 min-h-0" });
+
+  const tableScroll = h("div", { class: "flex-1 overflow-y-auto" });
+  const itemsTable = h("table", { class: "w-full table-fixed border-collapse" });
+  const cg = h("colgroup");
+  ["20%", "30%", "12%", "14%", "14%", "10%"].forEach(w => cg.appendChild(h("col", { style: { width: w } })));
+  itemsTable.appendChild(cg);
+
+  const thead = h("thead");
+  const trh = h("tr", { class: "text-white text-sm font-semibold", style: { background: "#0c4a6e" } });
+  ["Staff", "Item", "Quantity", "Discount", "Price", ""].forEach(label =>
+    trh.appendChild(h("th", { class: "px-3 text-left font-semibold", style: { height: "44px" } }, label))
+  );
+  thead.appendChild(trh);
+  itemsTable.appendChild(thead);
+
+  const tbody = h("tbody");
+  if (state.items.length === 0) {
+    const tr = h("tr");
+    tr.appendChild(h("td", { colspan: "6", class: "text-center text-sm text-gray-400", style: { height: "256px" } }, "No items added yet"));
+    tbody.appendChild(tr);
+  } else {
+    state.items.forEach(item => {
+      const tr = h("tr", { class: "border-t border-gray-100" });
+      const staffNames = item.splits.length === 1
+        ? (ROSTERED_STAFF.find(s => s.id === item.splits[0].staffId)?.name || "")
+        : `${item.splits.length} staff (split)`;
+      tr.appendChild(h("td", { class: "px-3 py-3 align-middle text-sm truncate" }, staffNames));
+      tr.appendChild(h("td", { class: "px-3 py-3 align-middle text-sm truncate" }, item.name));
+      tr.appendChild(h("td", { class: "px-3 py-3 align-middle text-sm" }, String(item.quantity)));
+      tr.appendChild(h("td", { class: "px-3 py-3 align-middle text-sm" }, "None"));
+      tr.appendChild(h("td", { class: "px-3 py-3 align-middle text-sm" }, "$" + item.price.toFixed(2)));
+
+      const tdAct = h("td", { class: "px-3 py-3 align-middle relative" });
+      const actWrap = h("div", { class: "flex justify-end gap-1 items-center" });
+
+      const moreBtn = h("button", {
+        class: "rounded hover:bg-gray-100 flex items-center justify-center",
+        style: { width: "32px", height: "32px" },
+        onclick: e => {
+          e.stopPropagation();
+          state.openMenuId = state.openMenuId === item.id ? null : item.id;
+          renderApp();
+        }
+      });
+      moreBtn.appendChild(svgIcon("more", "icon-sm", "#000"));
+      actWrap.appendChild(moreBtn);
+
+      const xBtn = h("button", {
+        class: "rounded hover:bg-gray-100 flex items-center justify-center",
+        style: { width: "32px", height: "32px" },
+        onclick: () => {
+          state.items = state.items.filter(i => i.id !== item.id);
+          renderApp();
+        }
+      });
+      xBtn.appendChild(svgIcon("x", "icon-sm", "#000"));
+      actWrap.appendChild(xBtn);
+
+      if (state.openMenuId === item.id) {
+        const menuBackdrop = h("div", { class: "fixed inset-0 z-10", onclick: () => { state.openMenuId = null; renderApp(); } });
+        actWrap.appendChild(menuBackdrop);
+        const menu = h("div", {
+          class: "absolute z-20 bg-white border border-gray-200 rounded shadow-lg py-1",
+          style: { right: "48px", top: "40px", width: "208px" }
+        });
+        const splitOpt = h("button", {
+          class: "w-full text-left px-3 py-2 text-sm hover:bg-gray-50",
+          onclick: () => { state.openMenuId = null; openEditSplit(item.id); }
+        }, "Split Commission");
+        menu.appendChild(splitOpt);
+        menu.appendChild(h("button", { class: "w-full text-left px-3 py-2 text-sm hover:bg-gray-50" }, "Apply discount"));
+        menu.appendChild(h("button", { class: "w-full text-left px-3 py-2 text-sm hover:bg-gray-50" }, "Edit price"));
+        actWrap.appendChild(menu);
+      }
+
+      tdAct.appendChild(actWrap);
+      tr.appendChild(tdAct);
+      tbody.appendChild(tr);
+    });
+  }
+  itemsTable.appendChild(tbody);
+  tableScroll.appendChild(itemsTable);
+  tableShell.appendChild(tableScroll);
+
+  const totDue = state.items.reduce((s, i) => s + i.price * i.quantity, 0);
+  const totBar = h("div", {
+    class: "flex justify-end items-center px-4 py-3 border-t border-gray-200 shrink-0",
+    style: { background: "var(--blue)" }
+  });
+  const totSpan = h("span", { class: "text-sm" });
+  totSpan.innerHTML = `Amount Due: <strong>$${totDue.toFixed(2)}</strong>`;
+  totBar.appendChild(totSpan);
+  tableShell.appendChild(totBar);
+
+  right.appendChild(tableShell);
+  cols.appendChild(right);
+  mid.appendChild(cols);
+  main.appendChild(mid);
+
+  /* Fixed footer */
+  const footer = h("div", { class: "flex justify-between items-center px-6 py-4 border-t border-gray-200 bg-white shrink-0" });
+  const footerLeft = h("div", { class: "flex gap-2" });
+  ["Petty Cash", "Notes", "Professional", "Generate quote"].forEach(label =>
+    footerLeft.appendChild(btnSecondary({ children: label }))
+  );
+  footer.appendChild(footerLeft);
+  const payBtn = btnPrimary({
+    disabled: state.items.length === 0,
+    children: [svgIcon("cart", "icon-sm", "#000"), " Pay"]
+  });
+  footer.appendChild(payBtn);
+  main.appendChild(footer);
+
+  root.appendChild(main);
+}
+
+renderApp();
+</script>
+</body>
+</html>

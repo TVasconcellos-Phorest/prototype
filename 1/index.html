@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Phorest – Appointment Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; font-family: 'Inter', sans-serif; background: #f9fafb; overflow: hidden; }
+
+  /* ───── Layout ─────────────────────────────────────────────────────── */
+  .app { display: flex; height: 100vh; width: 100%; position: relative; overflow: hidden; }
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* ───── Sidebar ────────────────────────────────────────────────────── */
+  .sidebar { width: 60px; background: linear-gradient(180deg,#009F6E,#019A6C); display: flex; flex-direction: column; align-items: center; padding: 12px 8px; gap: 8px; flex-shrink: 0; }
+  .logo-tile { background: white; border-radius: 8px; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; margin-bottom: 2px; }
+  .clock { color: white; text-align: center; margin-bottom: 4px; }
+  .clock .t { font-size: 13px; font-weight: 700; line-height: 1.1; }
+  .clock .d { font-size: 11px; font-weight: 500; }
+  .nav-group { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+  .nav-group.top { flex: 1; }
+  .nav-btn { width: 100%; height: 44px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; background: rgba(255,255,255,0.2); }
+  .nav-btn.active { background: white; }
+
+  /* ───── Buttons ────────────────────────────────────────────────────── */
+  .btn { font-family: 'Inter',sans-serif; font-size: 14px; font-weight: 500; border-radius: 4px; padding: 0 16px; height: 40px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; border: 1px solid #000; border-bottom-width: 2px; }
+  .btn-primary { background: #FBBF24; }
+  .btn-primary:hover { background: #f5b01a; }
+  .btn-secondary { background: #fff; }
+  .btn-secondary:hover { background: #f9fafb; }
+  .btn-sm { padding: 0 12px; font-size: 13px; }
+  .btn-xs { padding: 0 10px; font-size: 12px; gap: 4px; }
+  .btn-icon { padding: 0 10px; }
+
+  /* ───── Header ─────────────────────────────────────────────────────── */
+  .header { background: white; border-bottom: 1px solid #e5e7eb; padding: 0 16px; height: 60px; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .header .title { flex: 1; text-align: center; }
+  .header .title .main { font-size: 15px; font-weight: 600; }
+  .header .title .sub { font-size: 12px; color: #6b7280; }
+  .view-group { display: flex; gap: 0; }
+  .view-group .btn:first-child { border-radius: 4px 0 0 4px; }
+  .view-group .btn:last-child { border-radius: 0 4px 4px 0; border-left: none; }
+
+  /* ───── Sub-header ─────────────────────────────────────────────────── */
+  .subheader { background: white; border-bottom: 1px solid #e5e7eb; padding: 0 16px; height: 56px; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .day-pills { flex: 1; display: flex; gap: 0; justify-content: center; }
+  .day-pills .btn { border-radius: 0; border-left: none; }
+  .day-pills .btn:first-child { border-radius: 4px 0 0 4px; border-left: 1px solid #000; }
+  .day-pills .btn:last-child { border-radius: 0 4px 4px 0; }
+
+  /* ───── Calendar ───────────────────────────────────────────────────── */
+  .cal-wrap { flex: 1; display: flex; min-height: 0; overflow: hidden; }
+  .time-col { width: 52px; flex-shrink: 0; display: flex; flex-direction: column; }
+  .time-col .spacer { height: 36px; border-bottom: 1px solid #e5e7eb; flex-shrink: 0; }
+  .time-col .hours { flex: 1; display: flex; flex-direction: column; }
+  .time-col .hour { flex: 1; border-bottom: 1px solid #f3f4f6; position: relative; }
+  .time-col .hour-label { position: absolute; top: -7px; left: 6px; font-size: 10px; color: #9ca3af; background: #f9fafb; padding: 0 2px; }
+  .staff-col { flex: 1; border-left: 1px solid #e5e7eb; display: flex; flex-direction: column; min-width: 0; }
+  .staff-header { height: 36px; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; gap: 6px; padding: 0 8px; flex-shrink: 0; }
+  .staff-header .avatar { width: 22px; height: 22px; border-radius: 50%; background: rgba(255,255,255,0.25); display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; color: white; flex-shrink: 0; }
+  .staff-header .name { font-size: 11px; font-weight: 600; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .slots { position: relative; flex: 1; display: flex; flex-direction: column; }
+  .slot { flex: 1; cursor: pointer; min-height: 0; }
+  .slot.even { background: #fff; }
+  .slot.odd { background: #F3F4F6; }
+  .slot:hover { background: #e0f2fe; }
+  .appt { position: absolute; left: 2px; right: 2px; border-radius: 4px; padding: 3px 6px; overflow: hidden; pointer-events: none; }
+  .appt .n { font-size: 10px; font-weight: 700; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .appt .s { font-size: 10px; color: rgba(255,255,255,0.85); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .appt .t { font-size: 9px; color: rgba(255,255,255,0.8); }
+
+  /* ───── Footer ─────────────────────────────────────────────────────── */
+  .footer { background: white; border-top: 1px solid #e5e7eb; padding: 12px 16px; display: flex; gap: 8px; flex-shrink: 0; }
+
+  /* ───── Slot popup ─────────────────────────────────────────────────── */
+  .popup-overlay { position: absolute; inset: 0; z-index: 30; display: none; }
+  .popup-overlay.show { display: block; }
+  .popup { position: absolute; left: 280px; top: 200px; background: white; border-radius: 10px; box-shadow: 0 8px 32px rgba(0,0,0,0.18); padding: 16px; width: 220px; }
+  .popup .time { font-size: 18px; font-weight: 700; margin-bottom: 12px; }
+  .popup .x { position: absolute; top: 12px; right: 12px; background: none; border: none; font-size: 20px; cursor: pointer; color: #9ca3af; line-height: 1; }
+  .popup .btn { width: 100%; }
+  .popup .btn + .btn { margin-top: 8px; }
+
+  /* ───── Slideover ──────────────────────────────────────────────────── */
+  .slideover-bg { position: absolute; inset: 0; z-index: 40; display: none; }
+  .slideover-bg.show { display: flex; }
+  .slideover-bg .scrim { flex: 1; background: rgba(0,0,0,0.3); }
+  .slideover { width: 500px; background: white; height: 100%; display: flex; flex-direction: column; box-shadow: -4px 0 24px rgba(0,0,0,0.15); overflow: hidden; }
+  .slideover-header { padding: 16px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: flex-start; flex-shrink: 0; }
+  .slideover-header .title { font-size: 17px; font-weight: 600; }
+  .slideover-header .sub { font-size: 13px; color: #6b7280; }
+  .slideover-header .actions { display: flex; gap: 8px; align-items: center; }
+  .slideover-body { flex: 1; overflow-y: auto; }
+
+  /* ───── Inputs ─────────────────────────────────────────────────────── */
+  .input { flex: 1; border: 1px solid #d1d5db; border-radius: 6px; padding: 8px 12px; font-size: 14px; font-family: 'Inter',sans-serif; outline: none; }
+  .input:focus { border-color: #009F6E; box-shadow: 0 0 0 3px rgba(0,159,110,0.15); }
+
+  /* ───── Client list ────────────────────────────────────────────────── */
+  .search-area { padding: 14px 16px 8px; display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; }
+  .search-row { display: flex; gap: 10px; }
+  .section-label { font-size: 12px; color: #9ca3af; font-weight: 500; padding: 8px 16px 4px; }
+  .section-label.alpha { font-weight: 600; padding: 10px 16px 4px; background: #f9fafb; }
+  .client-row { display: flex; align-items: center; gap: 12px; padding: 11px 16px; cursor: pointer; border-bottom: 1px solid #f3f4f6; }
+  .client-row:hover { background: #f9fafb; }
+  .client-row .avatar { position: relative; width: 40px; height: 40px; border-radius: 50%; background: #9ca3af; color: white; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; flex-shrink: 0; overflow: hidden; }
+  .client-row .avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .client-row .info .n { font-size: 14px; font-weight: 500; }
+  .client-row .info .p, .client-row .info .e { font-size: 12px; color: #6b7280; }
+  .new-client-bar { border-top: 1px solid #e5e7eb; padding: 12px 16px; flex-shrink: 0; }
+
+  /* ───── Appointment details ────────────────────────────────────────── */
+  .client-block { padding: 16px; display: flex; align-items: center; gap: 14px; }
+  .client-block .av { width: 44px; height: 44px; border-radius: 50%; background: #e5e7eb; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 600; color: #6b7280; flex-shrink: 0; }
+  .client-block .n { font-size: 16px; font-weight: 600; }
+  .client-block .p, .client-block .e { font-size: 13px; color: #6b7280; }
+  .action-btns { display: flex; gap: 8px; padding: 0 16px 16px; flex-wrap: wrap; }
+  .action-btns .btn { padding: 0 12px; font-size: 13px; }
+  .alert { margin: 0 16px 16px; background: #fffbeb; border: 1px solid #fcd34d; border-radius: 6px; padding: 11px 14px; display: flex; align-items: center; gap: 10px; }
+  .alert .msg { flex: 1; font-size: 13px; color: #92400e; font-weight: 500; }
+  .alert .dismiss { font-size: 13px; color: #d97706; background: none; border: none; cursor: pointer; font-weight: 500; font-family: 'Inter',sans-serif; }
+  .notes { padding: 0 16px 16px; }
+  .notes .head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .notes .label { font-size: 14px; font-weight: 600; }
+  .notes .edit { font-size: 13px; color: #009F6E; background: none; border: none; cursor: pointer; font-weight: 500; font-family: 'Inter',sans-serif; }
+  .notes .body { font-size: 13px; color: #6b7280; }
+  .service-cards { padding: 0 16px 16px; display: flex; flex-direction: column; gap: 10px; }
+  .add-service-wrap { padding: 0 16px 16px; }
+  .add-service-wrap .btn { width: 100%; }
+  .appt-footer { background: #38bdf8; padding: 12px 16px; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .appt-footer .spacer { flex: 1; }
+
+  /* ───── Service card ───────────────────────────────────────────────── */
+  .svc-card-wrap { display: flex; align-items: center; gap: 8px; }
+  .svc-card { flex: 1; background: #f3f4f6; border-radius: 4px; display: flex; align-items: stretch; overflow: hidden; }
+  .svc-card .bar { width: 8px; flex-shrink: 0; }
+  .svc-card .body { flex: 1; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+  .svc-card .name-row { display: flex; align-items: center; gap: 8px; position: relative; }
+  .svc-card .svc-name { font-size: 16px; font-weight: 700; }
+  .svc-card .with-link { font-size: 14px; font-weight: 400; background: none; border: none; cursor: pointer; font-family: 'Inter',sans-serif; color: #000; text-decoration: underline; padding: 0; display: flex; align-items: center; gap: 3px; }
+  .svc-card .pills { display: flex; gap: 8px; }
+  .pill { border: 1px solid #9ca3af; border-radius: 4px; padding: 6px 12px; font-size: 14px; font-weight: 500; background: white; display: flex; align-items: center; gap: 6px; }
+  .pill .check-box { width: 18px; height: 18px; background: #059669; border: 1.5px solid #065f46; border-radius: 3px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .svc-card .chev { padding: 0 8px; display: flex; align-items: center; cursor: pointer; }
+  .svc-remove { width: 36px; height: 36px; border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border-radius: 4px; }
+
+  /* Inline staff picker (within service card) */
+  .staff-picker { position: absolute; top: calc(100% + 4px); left: 0; background: white; border: 1px solid #e5e7eb; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); z-index: 50; min-width: 220px; overflow: hidden; }
+
+  /* ───── Service picker ─────────────────────────────────────────────── */
+  .staff-selector-wrap { padding: 14px 16px 0; flex-shrink: 0; }
+  .staff-selector-wrap .label { font-size: 12px; font-weight: 500; color: #6b7280; margin-bottom: 6px; }
+  .staff-trigger { width: 100%; display: flex; align-items: center; gap: 10px; border: 1px solid #d1d5db; border-radius: 6px; padding: 8px 12px; background: white; cursor: pointer; font-family: 'Inter',sans-serif; }
+  .staff-trigger:hover { border-color: #9ca3af; }
+  .staff-trigger .av { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: white; flex-shrink: 0; }
+  .staff-trigger .n { flex: 1; font-size: 14px; font-weight: 500; text-align: left; }
+  .staff-dropdown { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: white; border: 1px solid #e5e7eb; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); z-index: 10; }
+  .staff-dropdown .head { padding: 8px 14px 6px; font-size: 11px; font-weight: 600; color: #9ca3af; letter-spacing: 0.05em; border-bottom: 1px solid #f3f4f6; }
+  .staff-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; cursor: pointer; }
+  .staff-item:hover { background: #f9fafb; }
+  .staff-item.selected { background: #f0fdf4; }
+  .staff-item .av { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: white; flex-shrink: 0; }
+  .staff-item .info { flex: 1; }
+  .staff-item .n { font-size: 14px; font-weight: 500; }
+  .staff-item .r { font-size: 12px; color: #6b7280; }
+
+  .search-wrap { padding: 12px 16px 0; flex-shrink: 0; position: relative; }
+  .search-wrap .icon { position: absolute; left: 26px; top: 50%; transform: translateY(-50%); pointer-events: none; }
+  .search-wrap .input { width: 100%; padding-left: 34px; }
+
+  .cat-list { flex: 1; overflow-y: auto; margin-top: 12px; border-top: 1px solid #f3f4f6; }
+  .cat-row { display: flex; align-items: center; gap: 16px; padding: 14px 20px; border-bottom: 1px solid #f3f4f6; cursor: pointer; }
+  .cat-row:hover { background: #f9fafb; }
+  .cat-row .av { width: 52px; height: 52px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: white; flex-shrink: 0; }
+  .cat-row .n { font-size: 16px; font-weight: 600; }
+
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+  <!-- ─── SIDEBAR ─────────────────────────────────────────────── -->
+  <div class="sidebar">
+    <div class="logo-tile">
+      <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+        <path d="M5 22 C 8 14, 11 10, 14 12 C 16 13, 14 18, 12 19 C 10 20, 9 17, 12 14 C 16 10, 21 9, 24 12 C 26 14, 24 18, 21 18" stroke="#EC4899" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="25" cy="20" r="1.4" fill="#EC4899"/>
+      </svg>
+    </div>
+    <div class="clock">
+      <div class="t">23:06</div>
+      <div class="d">6 May</div>
+    </div>
+    <div class="nav-group top">
+      <div class="nav-btn active">
+        <svg width="22" height="22" viewBox="0 0 24 24"><path fill-rule="evenodd" clip-rule="evenodd" d="M6.75 2.25A.75.75 0 0 1 7.5 3v1.5h9V3A.75.75 0 0 1 18 3v1.5h.75a3 3 0 0 1 3 3v11.25a3 3 0 0 1-3 3H5.25a3 3 0 0 1-3-3V7.5a3 3 0 0 1 3-3H6V3a.75.75 0 0 1 .75-.75zm13.5 9a.75.75 0 0 0-.75-.75H4.5a.75.75 0 0 0 0 1.5h15a.75.75 0 0 0 .75-.75z" fill="#000"/></svg>
+      </div>
+      <div class="nav-btn">
+        <svg width="22" height="22" viewBox="0 0 24 24"><path fill-rule="evenodd" clip-rule="evenodd" d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0zM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695z" fill="rgba(255,255,255,0.8)"/></svg>
+      </div>
+      <div class="nav-btn">
+        <svg width="22" height="22" viewBox="0 0 24 24"><path d="M16.881 4.346A23.112 23.112 0 0 1 8.25 6H7.5a5.25 5.25 0 0 0-.88 10.427 21.593 21.593 0 0 0 1.378 3.94c.464 1.004 1.674 1.32 2.582.796l.657-.379c.88-.508 1.165-1.593.772-2.468a17.116 17.116 0 0 1-.628-1.607c1.918.258 3.76.75 5.5 1.446V4.346zM18.75 7.5l-.387.215a.522.522 0 0 0 0 .914L18.75 8.853V7.5zM20.25 5.507a.75.75 0 0 1 .75.75v11.486a.75.75 0 0 1-1.5 0V6.257a.75.75 0 0 1 .75-.75zM18.75 16.354v-1.353l.387-.215a.522.522 0 0 1 0-.914L18.75 13.66v-1.353a.5.5 0 0 1 .5-.5h.5v5.046h-.5a.5.5 0 0 1-.5-.5z" fill="rgba(255,255,255,0.8)"/></svg>
+      </div>
+      <div class="nav-btn">
+        <svg width="22" height="22" viewBox="0 0 24 24"><path fill-rule="evenodd" clip-rule="evenodd" d="M7.5 6v.75H5.513c-.96 0-1.764.724-1.865 1.679l-1.263 12A1.875 1.875 0 0 0 4.25 22.5h15.5a1.875 1.875 0 0 0 1.865-2.071l-1.263-12a1.875 1.875 0 0 0-1.865-1.679H16.5V6a4.5 4.5 0 1 0-9 0zm4.5-1.5a3 3 0 0 0-3 3v.75h6V7.5a3 3 0 0 0-3-3zm-3 8.25a3 3 0 1 0 6 0 3 3 0 0 0-6 0z" fill="rgba(255,255,255,0.8)"/></svg>
+      </div>
+      <div class="nav-btn">
+        <svg width="22" height="22" viewBox="0 0 24 24"><path d="M11.484 2.17a.75.75 0 0 1 1.032 0 11.209 11.209 0 0 0 7.877 3.079.75.75 0 0 1 .722.515 12.74 12.74 0 0 1 .635 3.985c0 5.942-4.064 10.933-9.563 12.348a.749.749 0 0 1-.374 0C6.314 20.683 2.25 15.692 2.25 9.75c0-1.39.223-2.73.635-3.985a.75.75 0 0 1 .722-.516l.143.001c2.996 0 5.718-1.17 7.734-3.08z" fill="rgba(255,255,255,0.8)"/></svg>
+      </div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-btn"><svg width="22" height="22" viewBox="0 0 24 24"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zM12.75 6a.75.75 0 0 0-1.5 0v6c0 .414.336.75.75.75h4.5a.75.75 0 0 0 0-1.5h-3.75V6z" fill="rgba(255,255,255,0.8)"/></svg></div>
+      <div class="nav-btn"><svg width="22" height="22" viewBox="0 0 24 24"><path fill-rule="evenodd" clip-rule="evenodd" d="M19.449 8.448 16.388 11.51a4.459 4.459 0 0 1 0 .978l3.061 3.062a8.25 8.25 0 0 0 0-7.103zM15.552 19.45 12.49 16.389a4.459 4.459 0 0 1-.978 0l-3.062 3.061a8.25 8.25 0 0 0 7.103 0zM4.55 15.552l3.062-3.062a4.459 4.459 0 0 1 0-.978L4.55 8.45a8.25 8.25 0 0 0 0 7.103zM8.448 4.55l3.062 3.062a4.459 4.459 0 0 1 .978 0L15.55 4.55a8.25 8.25 0 0 0-7.103 0zM2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm9.75-3a3 3 0 1 0 0 6 3 3 0 0 0 0-6z" fill="rgba(255,255,255,0.8)"/></svg></div>
+      <div class="nav-btn"><svg width="22" height="22" viewBox="0 0 24 24"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 1.5a5.25 5.25 0 0 0-5.25 5.25v3a3 3 0 0 0-3 3v6.75a3 3 0 0 0 3 3h10.5a3 3 0 0 0 3-3v-6.75a3 3 0 0 0-3-3v-3c0-2.9-2.35-5.25-5.25-5.25zm3.75 8.25v-3a3.75 3.75 0 1 0-7.5 0v3h7.5z" fill="rgba(255,255,255,0.8)"/></svg></div>
+    </div>
+  </div>
+
+  <!-- ─── MAIN ────────────────────────────────────────────────── -->
+  <div class="main">
+    <div class="header">
+      <button class="btn btn-secondary btn-sm">
+        All Staff – Filtered
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <button class="btn btn-secondary btn-sm">Clear</button>
+      <div class="title">
+        <div class="main">Wednesday 6 May 2026</div>
+        <div class="sub">Today</div>
+      </div>
+      <div class="view-group">
+        <button class="btn btn-primary">Day</button>
+        <button class="btn btn-secondary">Week</button>
+      </div>
+      <button class="btn btn-secondary">Date</button>
+    </div>
+
+    <div class="subheader">
+      <button class="btn btn-secondary btn-xs"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>Week</button>
+      <button class="btn btn-secondary btn-xs"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>Day</button>
+      <div class="day-pills">
+        <button class="btn btn-primary btn-xs">Today</button>
+        <button class="btn btn-secondary btn-xs">Thu</button>
+        <button class="btn btn-secondary btn-xs">Fri</button>
+        <button class="btn btn-secondary btn-xs">Sat</button>
+        <button class="btn btn-secondary btn-xs">Sun</button>
+        <button class="btn btn-secondary btn-xs">Mon</button>
+        <button class="btn btn-secondary btn-xs">Tue</button>
+      </div>
+      <button class="btn btn-secondary btn-xs">Day <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>
+      <button class="btn btn-secondary btn-xs">Week <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>
+      <button class="btn btn-secondary btn-xs">6 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></button>
+    </div>
+
+    <div class="cal-wrap" id="calWrap"></div>
+
+    <div class="footer">
+      <button class="btn btn-secondary btn-sm"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Check In</button>
+      <button class="btn btn-secondary btn-sm"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>Pay</button>
+      <button class="btn btn-secondary btn-sm"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>Remove</button>
+      <button class="btn btn-secondary btn-sm"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Notes</button>
+      <button class="btn btn-secondary btn-sm"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Confirm</button>
+      <button class="btn btn-secondary btn-sm" style="margin-left:auto"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg>Undo</button>
+    </div>
+  </div>
+
+  <!-- ─── SLOT POPUP ──────────────────────────────────────────── -->
+  <div id="popup" class="popup-overlay">
+    <div class="popup" onclick="event.stopPropagation()">
+      <div class="time">10:30</div>
+      <button class="x" onclick="closePopup()">×</button>
+      <button class="btn btn-primary" onclick="openClientList()">Add appointment</button>
+      <button class="btn btn-secondary">Add break</button>
+    </div>
+  </div>
+
+  <!-- ─── CLIENT LIST SLIDEOVER ───────────────────────────────── -->
+  <div id="clientSlide" class="slideover-bg">
+    <div class="scrim" onclick="closeAll()"></div>
+    <div class="slideover">
+      <div class="slideover-header">
+        <div class="title">Wed 6 May 2026 at 10:30</div>
+        <button class="btn btn-secondary btn-icon" onclick="closeAll()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+      <div class="search-area">
+        <div class="search-row">
+          <input class="input" placeholder="First name, ID or Treatcard" />
+          <input class="input" placeholder="Last name" />
+        </div>
+        <input class="input" placeholder="Phone number" />
+        <input class="input" placeholder="Email" />
+      </div>
+      <div class="slideover-body">
+        <div class="section-label">Recently interacted with</div>
+        <div id="clientsRecent"></div>
+        <div class="section-label alpha">A</div>
+        <div id="clientsAlpha"></div>
+      </div>
+      <div class="new-client-bar">
+        <button class="btn btn-primary" style="width:100%">+ New Client</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── APPT DETAILS SLIDEOVER ──────────────────────────────── -->
+  <div id="apptSlide" class="slideover-bg">
+    <div class="scrim" onclick="closeAll()"></div>
+    <div class="slideover">
+      <div class="slideover-header">
+        <div>
+          <div class="title">Appointment details</div>
+          <div class="sub">Today, 6th May</div>
+        </div>
+        <div class="actions">
+          <button class="btn btn-secondary btn-sm"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Chat</button>
+          <button class="btn btn-secondary btn-icon" onclick="closeAll()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+        </div>
+      </div>
+      <div class="slideover-body">
+        <div class="client-block">
+          <div class="av">MD</div>
+          <div>
+            <div class="n">Mary Donuts</div>
+            <div class="p">0891234578</div>
+            <div class="e">donuts@gooey.ie</div>
+          </div>
+        </div>
+        <div class="action-btns">
+          <button class="btn btn-secondary">Client card</button>
+          <button class="btn btn-secondary">Appointment history</button>
+          <button class="btn btn-secondary">Assign Treatcard</button>
+          <button class="btn btn-secondary">···</button>
+        </div>
+        <div class="alert">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" style="flex-shrink:0"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <span class="msg">This client has had 3 no-shows</span>
+          <button class="dismiss">Dismiss</button>
+        </div>
+        <div class="notes">
+          <div class="head">
+            <span class="label">Client notes</span>
+            <button class="edit">View &amp; Edit</button>
+          </div>
+          <div class="body">https://youtu.be/xvFZjo5PgG0</div>
+        </div>
+        <div id="serviceCards" class="service-cards"></div>
+        <div class="add-service-wrap">
+          <button class="btn btn-primary" onclick="openServicePicker()">Add service</button>
+        </div>
+      </div>
+      <div class="appt-footer">
+        <button class="btn btn-primary" id="payBtn" style="min-width:130px">Pay €0.00</button>
+        <button class="btn btn-secondary">Options <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></button>
+        <div class="spacer"></div>
+        <button class="btn btn-secondary" onclick="closeAll()">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── SERVICE PICKER SLIDEOVER ────────────────────────────── -->
+  <div id="serviceSlide" class="slideover-bg">
+    <div class="scrim" onclick="closeServicePicker()"></div>
+    <div class="slideover">
+      <div class="slideover-header">
+        <div>
+          <div class="title">Add service</div>
+          <div class="sub">Today, 6th May at 10:30</div>
+        </div>
+        <button class="btn btn-secondary btn-icon" onclick="closeServicePicker()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+      <div class="staff-selector-wrap">
+        <div class="label">Staff member</div>
+        <div style="position:relative" id="staffSelectorContainer">
+          <button class="staff-trigger" onclick="toggleStaffDropdown(event)">
+            <div class="av" id="staffSelAv" style="background:#7c3aed">RC</div>
+            <span class="n" id="staffSelName">Rich Cullen</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div id="staffDropdown" class="staff-dropdown hidden"></div>
+        </div>
+      </div>
+      <div class="search-wrap">
+        <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="input" placeholder="Search services…" />
+      </div>
+      <div class="cat-list" id="catList"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── DATA ─────────────────────────────────────────────────────────────────
+const STAFF = [
+  { initials:"RC", name:"Rich Cullen",       role:"Senior Stylist",    bg:"#7c3aed" },
+  { initials:"RM", name:"Robert Metcalfe",   role:"Stylist",           bg:"#0369a1" },
+  { initials:"VW", name:"Verna Wall",        role:"Colourist",         bg:"#b45309" },
+  { initials:"DM", name:"Derek McAuley",     role:"Therapist (S)",     bg:"#15803d" },
+  { initials:"CM", name:"Carolina Michaels", role:"Senior Therapist",  bg:"#9f1239" },
+  { initials:"RF", name:"Rebecca Fahy",      role:"Stylist",           bg:"#1d4ed8" },
+  { initials:"JK", name:"Josie Kelly",       role:"Nail Tech",         bg:"#0f766e" },
+];
+
+const CLIENTS_RECENT = [
+  { name:"Alex Morrison",  phone:"000999997635242", email:"alex-morrison-test@web.de",     img:"https://i.pravatar.cc/200?img=12" },
+  { name:"Abbie Wright",   phone:"000456789876",    email:"abbie-wright@mailtest.com",      img:"https://i.pravatar.cc/200?img=47" },
+  { name:"Carole Baskin",  phone:"000987777060",    email:"carolina.soledade@phorest.com",  img:"https://i.pravatar.cc/200?img=49" },
+];
+const CLIENTS_ALPHA = [
+  { name:"Aaronasdasd Jumpo", phone:"404040444",  email:"cillian.moloney@phorest.com",       img:"https://i.pravatar.cc/200?img=15" },
+  { name:"Abdiel Lynch",      phone:"",           email:"camilal3@gmail.com",                img:"https://i.pravatar.cc/200?img=33", verified:true },
+  { name:"Abednego Danner",   phone:"",           email:"samuel.massari+test2@phorest.com",  img:"https://i.pravatar.cc/200?img=68" },
+  { name:"Adelaide Cooper",   phone:"0879998877", email:"adelaide.c@example.com",            img:"https://i.pravatar.cc/200?img=5" },
+  { name:"Aisha Reyes",       phone:"0851234567", email:"aisha.r@example.com",               img:"https://i.pravatar.cc/200?img=44" },
+];
+
+const SERVICE_CATEGORIES = [
+  { cat:"Nails",                 abbr:"NA", bg:"#db2777", items:[
+    { name:"Manicure",          duration:"45 min", price:"€35", color:"#db2777" },
+    { name:"Gel Manicure",      duration:"60 min", price:"€45", color:"#db2777" },
+    { name:"Pedicure",          duration:"60 min", price:"€40", color:"#db2777" },
+  ]},
+  { cat:"Cut & Styling",         abbr:"CS", bg:"#4c1d95", items:[
+    { name:"Ladies' Cut",       duration:"45 min", price:"€45", color:"#4c1d95" },
+    { name:"Gents' Cut",        duration:"30 min", price:"€30", color:"#4c1d95" },
+    { name:"BoHo Blowdry",      duration:"30 min", price:"€35", color:"#4c1d95" },
+    { name:"Fringe Trim",       duration:"15 min", price:"€10", color:"#4c1d95" },
+  ]},
+  { cat:"Colour With Finish",    abbr:"CW", bg:"#e07b6a", items:[
+    { name:"Full Head Colour",  duration:"90 min",  price:"€95",  color:"#e07b6a" },
+    { name:"Balayage",          duration:"120 min", price:"€130", color:"#e07b6a" },
+  ]},
+  { cat:"Botox",                 abbr:"BO", bg:"#86efac", items:[
+    { name:"Botox 100ml",       duration:"60 min", price:"€280", color:"#86efac" },
+  ]},
+  { cat:"Colour Without Finish", abbr:"CW", bg:"#6ee7b7", items:[
+    { name:"Toner",             duration:"30 min", price:"€40", color:"#6ee7b7" },
+  ]},
+  { cat:"Intense Pulse Light",   abbr:"IP", bg:"#4ade80", items:[
+    { name:"IPL Full Leg",      duration:"60 min", price:"€120", color:"#4ade80" },
+    { name:"IPL Underarm",      duration:"30 min", price:"€60",  color:"#4ade80" },
+  ]},
+  { cat:"Treatments",            abbr:"TR", bg:"#f87171", items:[
+    { name:"Skin Booster 1ml",  duration:"30 min", price:"€150", color:"#f87171" },
+    { name:"Micro Blading",     duration:"60 min", price:"€180", color:"#f87171" },
+  ]},
+  { cat:"Aesthetics",            abbr:"AE", bg:"#86efac", items:[
+    { name:"Wrinkle Relaxer",   duration:"30 min", price:"€200", color:"#86efac" },
+  ]},
+  { cat:"Injectables",           abbr:"IN", bg:"#c084fc", items:[
+    { name:"Lip Filler 1ml",    duration:"45 min", price:"€350", color:"#c084fc" },
+  ]},
+  { cat:"Special Offer Blowdry", abbr:"SO", bg:"#a78bfa", items:[
+    { name:"Blowdry Special",   duration:"30 min", price:"€20", color:"#a78bfa" },
+  ]},
+  { cat:"Video Consultations",   abbr:"VC", bg:"#065f46", items:[
+    { name:"Video Consult",     duration:"30 min", price:"€0",  color:"#065f46" },
+  ]},
+];
+
+const HOURS = [9,10,11,12,13,14,15,16,17,18,19];
+const ROW_H = 15; // legacy unit used to compute appt percentages
+
+const APPTS = [
+  { col:0, topPx:0,   hPx:60,  name:"Sarah M.",          service:"Cut & Blowdry",       time:"09:00–10:00", color:"#4c1d95" },
+  { col:0, topPx:120, hPx:120, name:"Test 2",            service:"Qual test 1",         time:"10:00–12:00", color:"#ca8a04" },
+  { col:0, topPx:270, hPx:45,  name:"Katie B.",          service:"Ladies' Cut",         time:"12:30–13:15", color:"#4c1d95" },
+  { col:0, topPx:390, hPx:60,  name:"Paula O'Brien",     service:"Full Head Colour",    time:"14:00–15:00", color:"#e07b6a" },
+  { col:1, topPx:0,   hPx:45,  name:"Tom Walsh",         service:"Gents' Cut",          time:"09:00–09:45", color:"#4c1d95" },
+  { col:1, topPx:135, hPx:45,  name:"Youri Gagarin",     service:"Wrinkle Relaxer",     time:"11:00–11:30", color:"#b45309" },
+  { col:1, topPx:210, hPx:45,  name:"Leslie Nope",       service:"Colour Consultation", time:"12:00–12:30", color:"#6b7280" },
+  { col:1, topPx:330, hPx:60,  name:"Fiona O'Sullivan",  service:"Micro blading",       time:"13:30–14:30", color:"#0f766e" },
+  { col:1, topPx:510, hPx:45,  name:"Youri G.",          service:"Fringe Trim",         time:"15:00–15:30", color:"#0f766e" },
+  { col:2, topPx:30,  hPx:45,  name:"German Fútbol Team",service:"Skin Booster 1ml",    time:"09:30–10:00", color:"#7c3aed" },
+  { col:2, topPx:135, hPx:60,  name:"Decompress",        service:"11:00–12:00",         time:"",            color:"#374151" },
+  { col:2, topPx:210, hPx:60,  name:"Lunch",             service:"11:45–12:45",         time:"",            color:"#1f2937" },
+  { col:2, topPx:330, hPx:45,  name:"Emma D.",           service:"IPL Full Leg",        time:"13:30–14:30", color:"#4ade80" },
+  { col:2, topPx:420, hPx:60,  name:"Niamh T.",          service:"Balayage",            time:"14:30–16:30", color:"#e07b6a" },
+  { col:3, topPx:0,   hPx:60,  name:"Ann P.",            service:"Pedicure",            time:"09:00–10:00", color:"#db2777" },
+  { col:3, topPx:135, hPx:60,  name:"Clare Test2",       service:"Botox 100ml",         time:"11:00–12:00", color:"#9f1239" },
+  { col:3, topPx:270, hPx:45,  name:"David K.",          service:"Gents' Cut",          time:"12:30–13:15", color:"#4c1d95" },
+  { col:3, topPx:390, hPx:90,  name:"Siobhan M.",        service:"Full Head Colour",    time:"14:00–15:30", color:"#e07b6a" },
+  { col:4, topPx:60,  hPx:60,  name:"Maria C.",          service:"Gel Manicure",        time:"10:00–11:00", color:"#db2777" },
+  { col:4, topPx:210, hPx:45,  name:"Lunch",             service:"",                    time:"12:00–12:45", color:"#1f2937" },
+  { col:4, topPx:330, hPx:45,  name:"Test 2",            service:"Cut & Finish",        time:"14:45–15:15", color:"#ca8a04" },
+  { col:4, topPx:420, hPx:60,  name:"Lucy B.",           service:"Blowdry Special",     time:"14:30–15:30", color:"#a78bfa" },
+  { col:5, topPx:0,   hPx:105, name:"Raquelle D.",       service:"Full Body Wrap",      time:"09:00–10:45", color:"#0369a1" },
+  { col:5, topPx:157, hPx:60,  name:"Josie Kelly",       service:"Ladies' Cut",         time:"11:30–12:30", color:"#1d4ed8" },
+  { col:5, topPx:240, hPx:45,  name:"Josie Kelly",       service:"BoHo Blowdry",        time:"12:30–13:00", color:"#0f766e" },
+  { col:5, topPx:345, hPx:60,  name:"Rachel M.",         service:"Lip Filler 1ml",      time:"13:45–14:30", color:"#c084fc" },
+  { col:6, topPx:30,  hPx:60,  name:"Aine B.",           service:"Manicure",            time:"09:30–10:30", color:"#db2777" },
+  { col:6, topPx:180, hPx:45,  name:"Break",             service:"",                    time:"11:00–11:45", color:"#374151" },
+  { col:6, topPx:270, hPx:60,  name:"Orla F.",           service:"Video Consult",       time:"12:30–13:30", color:"#065f46" },
+  { col:6, topPx:390, hPx:45,  name:"Ciara T.",          service:"IPL Underarm",        time:"14:00–14:30", color:"#4ade80" },
+];
+
+// ─── STATE ────────────────────────────────────────────────────────────────
+let selectedStaff = 0;
+let addedServices = [];
+
+// ─── BUILD CALENDAR ───────────────────────────────────────────────────────
+function buildCalendar() {
+  const wrap = document.getElementById("calWrap");
+  const totalSlots = HOURS.length * 4;
+  const pxToSlots = px => px / ROW_H;
+
+  // time column
+  const timeCol = document.createElement("div");
+  timeCol.className = "time-col";
+  timeCol.innerHTML = `<div class="spacer"></div><div class="hours">${
+    HOURS.map(h => `<div class="hour"><span class="hour-label">${String(h).padStart(2,"0")}:00</span></div>`).join("")
+  }</div>`;
+  wrap.appendChild(timeCol);
+
+  // staff columns
+  STAFF.forEach((s, ci) => {
+    const col = document.createElement("div");
+    col.className = "staff-col";
+
+    const header = document.createElement("div");
+    header.className = "staff-header";
+    header.style.background = s.bg;
+    header.innerHTML = `<div class="avatar">${s.initials}</div><div class="name">${s.name}</div>`;
+    col.appendChild(header);
+
+    const slots = document.createElement("div");
+    slots.className = "slots";
+    for (let i = 0; i < totalSlots; i++) {
+      const slot = document.createElement("div");
+      slot.className = "slot " + (i % 2 === 0 ? "even" : "odd");
+      slot.onclick = () => openPopup();
+      slots.appendChild(slot);
+    }
+    APPTS.filter(a => a.col === ci).forEach(a => {
+      const topPct = (pxToSlots(a.topPx) / totalSlots) * 100;
+      const hPct = (pxToSlots(a.hPx) / totalSlots) * 100;
+      const card = document.createElement("div");
+      card.className = "appt";
+      card.style.cssText = `top:${topPct}%; height:${hPct}%; background:${a.color}`;
+      card.innerHTML = `<div class="n">${a.name}</div><div class="s">${a.service}</div>${a.time ? `<div class="t">${a.time}</div>` : ""}`;
+      slots.appendChild(card);
+    });
+    col.appendChild(slots);
+    wrap.appendChild(col);
+  });
+}
+
+// ─── BUILD CLIENT LIST ────────────────────────────────────────────────────
+function buildClientList() {
+  const recent = document.getElementById("clientsRecent");
+  const alpha = document.getElementById("clientsAlpha");
+  const initials = name => name.split(" ").map(w => w[0]).join("").slice(0,2).toUpperCase();
+  const rowHTML = c => `
+    <div class="client-row" onclick="selectClient()">
+      <div class="avatar">
+        ${initials(c.name)}
+        <img src="${c.img}" alt="${c.name}" onerror="this.remove()" />
+      </div>
+      <div class="info">
+        <div class="n">${c.name}${c.verified ? " ✅" : ""}</div>
+        ${c.phone ? `<div class="p">${c.phone}</div>` : ""}
+        <div class="e">${c.email}</div>
+      </div>
+    </div>`;
+  recent.innerHTML = CLIENTS_RECENT.map(rowHTML).join("");
+  alpha.innerHTML = CLIENTS_ALPHA.map(rowHTML).join("");
+}
+
+// ─── POPUP / SLIDEOVER CONTROLS ───────────────────────────────────────────
+function openPopup() { document.getElementById("popup").classList.add("show"); }
+function closePopup() { document.getElementById("popup").classList.remove("show"); }
+function openClientList() {
+  closePopup();
+  document.getElementById("clientSlide").classList.add("show");
+}
+function selectClient() {
+  document.getElementById("clientSlide").classList.remove("show");
+  renderServiceCards();
+  document.getElementById("apptSlide").classList.add("show");
+}
+function openServicePicker() {
+  document.getElementById("serviceSlide").classList.add("show");
+  buildStaffDropdown();
+  buildCategoryList();
+}
+function closeServicePicker() {
+  document.getElementById("serviceSlide").classList.remove("show");
+  document.getElementById("staffDropdown").classList.add("hidden");
+}
+function closeAll() {
+  ["popup","clientSlide","apptSlide","serviceSlide"].forEach(id => {
+    const el = document.getElementById(id);
+    el.classList.remove("show");
+  });
+  document.getElementById("staffDropdown").classList.add("hidden");
+}
+
+// Click on popup overlay (but not the popup itself) closes it
+document.getElementById("popup").onclick = closePopup;
+
+// ─── STAFF DROPDOWN ───────────────────────────────────────────────────────
+function buildStaffDropdown() {
+  const dd = document.getElementById("staffDropdown");
+  dd.innerHTML = `<div class="head">ROSTERED STAFF</div>` +
+    STAFF.map((s, i) => `
+      <div class="staff-item ${i === selectedStaff ? "selected" : ""}" onclick="selectStaff(${i})">
+        <div class="av" style="background:${s.bg}">${s.initials}</div>
+        <div class="info"><div class="n">${s.name}</div><div class="r">${s.role}</div></div>
+        ${i === selectedStaff ? '<svg style="margin-left:auto" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#009F6E" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>' : ""}
+      </div>`).join("");
+}
+function toggleStaffDropdown(e) {
+  e.stopPropagation();
+  const dd = document.getElementById("staffDropdown");
+  dd.classList.toggle("hidden");
+}
+function selectStaff(i) {
+  selectedStaff = i;
+  const s = STAFF[i];
+  const avEl = document.getElementById("staffSelAv");
+  avEl.textContent = s.initials;
+  avEl.style.background = s.bg;
+  document.getElementById("staffSelName").textContent = s.name;
+  document.getElementById("staffDropdown").classList.add("hidden");
+}
+
+// ─── CATEGORY LIST ────────────────────────────────────────────────────────
+function buildCategoryList() {
+  const list = document.getElementById("catList");
+  list.innerHTML = SERVICE_CATEGORIES.map((c, ci) => `
+    <div class="cat-row" onclick="addService(${ci})">
+      <div class="av" style="background:${c.bg}">${c.abbr}</div>
+      <div class="n">${c.cat}</div>
+    </div>`).join("");
+}
+function addService(catIdx) {
+  const c = SERVICE_CATEGORIES[catIdx];
+  const item = c.items[0];
+  addedServices.push({ ...item, staffName: STAFF[selectedStaff].name });
+  closeServicePicker();
+  renderServiceCards();
+}
+
+// ─── RENDER SERVICE CARDS ─────────────────────────────────────────────────
+function renderServiceCards() {
+  const wrap = document.getElementById("serviceCards");
+  wrap.innerHTML = addedServices.map((svc, i) => `
+    <div class="svc-card-wrap">
+      <div class="svc-card">
+        <div class="bar" style="background:${svc.color}"></div>
+        <div class="body">
+          <div class="name-row">
+            <span class="svc-name">${svc.name}</span>
+            <button class="with-link" onclick="toggleStaffPicker(event, ${i})">with ${svc.staffName} <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></button>
+            <div id="staffPicker-${i}" class="staff-picker hidden">
+              <div class="head" style="padding:8px 14px 6px; font-size:11px; font-weight:600; color:#9ca3af; letter-spacing:0.05em; border-bottom:1px solid #f3f4f6">CHANGE STAFF</div>
+              ${STAFF.map(st => `
+                <div class="staff-item ${st.name === svc.staffName ? 'selected' : ''}" style="padding:9px 14px" onclick="changeServiceStaff(${i}, '${st.name.replace(/'/g, "\\'")}')">
+                  <div class="av" style="background:${st.bg}; width:26px; height:26px; font-size:10px">${st.initials}</div>
+                  <span style="font-size:14px; font-weight:500">${st.name}</span>
+                  ${st.name === svc.staffName ? '<svg style="margin-left:auto" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#009F6E" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>' : ''}
+                </div>`).join("")}
+            </div>
+          </div>
+          <div class="pills">
+            <div class="pill">10:30 AM</div>
+            <div class="pill">${svc.duration}</div>
+            <div class="pill">${svc.price}</div>
+            <div class="pill"><div class="check-box"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>RQ</div>
+          </div>
+        </div>
+        <div class="chev"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+      </div>
+      <button class="svc-remove" onclick="removeService(${i})"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>`).join("");
+  updatePayTotal();
+}
+function toggleStaffPicker(e, idx) {
+  e.stopPropagation();
+  // Close any other open pickers first
+  document.querySelectorAll(".staff-picker").forEach(el => {
+    if (el.id !== `staffPicker-${idx}`) el.classList.add("hidden");
+  });
+  document.getElementById(`staffPicker-${idx}`).classList.toggle("hidden");
+}
+function changeServiceStaff(idx, name) {
+  addedServices[idx].staffName = name;
+  renderServiceCards();
+}
+function removeService(idx) {
+  addedServices.splice(idx, 1);
+  renderServiceCards();
+}
+function updatePayTotal() {
+  const total = addedServices.reduce((sum, s) => sum + parseFloat(s.price.replace("€","") || 0), 0);
+  document.getElementById("payBtn").textContent = `Pay €${total.toFixed(2)}`;
+}
+
+// ─── GLOBAL CLICK HANDLER (close dropdowns when clicking outside) ─────────
+document.addEventListener("click", e => {
+  // Staff selector dropdown
+  const dd = document.getElementById("staffDropdown");
+  const trigger = document.getElementById("staffSelectorContainer");
+  if (!dd.classList.contains("hidden") && !trigger.contains(e.target)) {
+    dd.classList.add("hidden");
+  }
+  // Service card staff pickers
+  document.querySelectorAll(".staff-picker").forEach(p => {
+    if (!p.classList.contains("hidden") && !p.parentElement.contains(e.target)) {
+      p.classList.add("hidden");
+    }
+  });
+});
+
+// ─── INIT ─────────────────────────────────────────────────────────────────
+buildCalendar();
+buildClientList();
+</script>
+</body>
+</html>
