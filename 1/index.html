@@ -148,8 +148,8 @@
   .svc-card .chev { padding: 0 8px; display: flex; align-items: center; cursor: pointer; }
   .svc-remove { width: 36px; height: 36px; border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border-radius: 4px; }
 
-  /* Inline staff picker (within service card) */
-  .staff-picker { position: absolute; top: calc(100% + 4px); left: 0; background: white; border: 1px solid #e5e7eb; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); z-index: 50; min-width: 220px; overflow: hidden; }
+  /* Inline staff picker (within service card) - uses fixed positioning to escape overflow:hidden */
+  .staff-picker { position: fixed; background: white; border: 1px solid #e5e7eb; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); z-index: 100; min-width: 220px; overflow: hidden; max-height: 320px; overflow-y: auto; }
 
   /* ───── Service picker ─────────────────────────────────────────────── */
   .staff-selector-wrap { padding: 14px 16px 0; flex-shrink: 0; }
@@ -680,11 +680,16 @@ function renderServiceCards() {
 }
 function toggleStaffPicker(e, idx) {
   e.stopPropagation();
+  const picker = document.getElementById(`staffPicker-${idx}`);
   // Close any other open pickers first
   document.querySelectorAll(".staff-picker").forEach(el => {
     if (el.id !== `staffPicker-${idx}`) el.classList.add("hidden");
   });
-  document.getElementById(`staffPicker-${idx}`).classList.toggle("hidden");
+  // Position relative to the clicked button (fixed positioning escapes overflow:hidden)
+  const btnRect = e.currentTarget.getBoundingClientRect();
+  picker.style.top = `${btnRect.bottom + 4}px`;
+  picker.style.left = `${btnRect.left}px`;
+  picker.classList.toggle("hidden");
 }
 function changeServiceStaff(idx, name) {
   addedServices[idx].staffName = name;
