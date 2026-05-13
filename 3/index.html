@@ -125,7 +125,7 @@
 
   /* ───── Service picker ─────────────────────────────────────────────── */
   .search-wrap { padding: 12px 16px 0; flex-shrink: 0; display: flex; flex-direction: column; gap: 10px; }
-  .field-label { font-size: 12px; font-weight: 500; color: #374151; margin-bottom: -4px; }
+  .field-label { font-size: 12px; font-weight: 500; color: #374151; margin-bottom: 6px; }
   .staff-select-wrap { position: relative; }
   .staff-trigger { width: 100%; display: flex; align-items: center; gap: 10px; border: 1px solid #d1d5db; border-radius: 6px; padding: 6px 36px 6px 8px; background: #fff; cursor: pointer; outline: none; font-family: 'Inter',sans-serif; text-align: left; min-height: 44px; }
   .staff-trigger:hover { background: #f9fafb; }
@@ -137,14 +137,20 @@
   .staff-trigger .placeholder { font-size: 14px; color: #6b7280; }
   .staff-select-wrap .chev { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; color: #6b7280; transition: transform 120ms ease; }
   .staff-select-wrap.open .chev { transform: translateY(-50%) rotate(180deg); }
-  .staff-menu { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: #fff; border: 1px solid #e5e7eb; border-radius: 6px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); z-index: 10; max-height: 320px; overflow-y: auto; padding: 4px 0; }
+  .staff-menu { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: #fff; border: 1px solid #e5e7eb; border-radius: 6px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); z-index: 10; overflow: hidden; display: flex; flex-direction: column; max-height: 360px; }
   .staff-menu[hidden] { display: none; }
+  .staff-menu-search { padding: 8px; border-bottom: 1px solid #f3f4f6; flex-shrink: 0; position: relative; }
+  .staff-menu-search .icon { position: absolute; left: 18px; top: 50%; transform: translateY(-50%); pointer-events: none; color: #9ca3af; }
+  .staff-menu-search input { width: 100%; border: 1px solid #d1d5db; border-radius: 6px; padding: 7px 10px 7px 32px; font-size: 13px; font-family: 'Inter',sans-serif; outline: none; }
+  .staff-menu-search input:focus { border-color: #009F6E; box-shadow: 0 0 0 3px rgba(0,159,110,0.15); }
+  .staff-menu-list { overflow-y: auto; padding: 4px 0; flex: 1; min-height: 0; }
   .staff-option { display: flex; align-items: center; gap: 12px; padding: 8px 12px; cursor: pointer; border: none; background: transparent; width: 100%; text-align: left; font-family: 'Inter',sans-serif; }
   .staff-option:hover, .staff-option:focus-visible { background: #f3f4f6; outline: none; }
   .staff-option .av { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: white; flex-shrink: 0; }
   .staff-option .name { font-size: 14px; font-weight: 700; color: #111827; }
   .staff-option .role { font-size: 12px; color: #6b7280; margin-top: 1px; }
   .staff-option.is-any .av { background: #6b7280; }
+  .staff-empty { padding: 16px 12px; text-align: center; font-size: 13px; color: #6b7280; }
   .search-field { position: relative; }
   .search-field .icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); pointer-events: none; }
   .search-field .input { width: 100%; padding-left: 34px; }
@@ -448,7 +454,13 @@
               </span>
             </button>
             <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
-            <div class="staff-menu" id="staffMenu" role="listbox" hidden></div>
+            <div class="staff-menu" id="staffMenu" role="listbox" hidden>
+              <div class="staff-menu-search">
+                <svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/></svg>
+                <input type="text" id="staffMenuSearch" placeholder="Search staff…" aria-label="Search staff" autocomplete="off" />
+              </div>
+              <div class="staff-menu-list" id="staffMenuList"></div>
+            </div>
           </div>
         </div>
         <div class="search-field">
@@ -1135,30 +1147,46 @@ function buildStaffFilter() {
   const wrap = document.getElementById('staffSelectWrap');
   const trigger = document.getElementById('staffTrigger');
   const menu = document.getElementById('staffMenu');
-  if (!wrap || !trigger || !menu) return;
+  const list = document.getElementById('staffMenuList');
+  const searchInput = document.getElementById('staffMenuSearch');
+  if (!wrap || !trigger || !menu || !list || !searchInput) return;
 
   const staffInitials = name => name.split(/\s+/).filter(Boolean).map(p => p[0]).slice(0,2).join('').toUpperCase();
 
-  // Build options: "Any staff member" + each STAFF row
-  const anyOpt = `
-    <button type="button" class="staff-option is-any" role="option" data-idx="">
-      <span class="av" aria-hidden="true">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/></svg>
-      </span>
-      <span>
-        <span class="name" style="display:block">Any staff member</span>
-        <span class="role">All rostered staff</span>
-      </span>
-    </button>`;
-  const staffOpts = STAFF.map((s, idx) => `
-    <button type="button" class="staff-option" role="option" data-idx="${idx}">
-      <span class="av" style="background:${s.bg}" aria-hidden="true">${staffInitials(s.name)}</span>
-      <span>
-        <span class="name" style="display:block">${s.name}</span>
-        <span class="role">${s.role}</span>
-      </span>
-    </button>`).join('');
-  menu.innerHTML = anyOpt + staffOpts;
+  const renderOptions = (query = '') => {
+    const q = query.trim().toLowerCase();
+    const matches = STAFF
+      .map((s, idx) => ({ s, idx }))
+      .filter(({ s }) => !q || s.name.toLowerCase().includes(q) || s.role.toLowerCase().includes(q));
+
+    // "Any staff member" only shows when there's no active query
+    const anyOpt = q ? '' : `
+      <button type="button" class="staff-option is-any" role="option" data-idx="">
+        <span class="av" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/></svg>
+        </span>
+        <span>
+          <span class="name" style="display:block">Any staff member</span>
+          <span class="role">All rostered staff</span>
+        </span>
+      </button>`;
+    const staffOpts = matches.map(({ s, idx }) => `
+      <button type="button" class="staff-option" role="option" data-idx="${idx}">
+        <span class="av" style="background:${s.bg}" aria-hidden="true">${staffInitials(s.name)}</span>
+        <span>
+          <span class="name" style="display:block">${s.name}</span>
+          <span class="role">${s.role}</span>
+        </span>
+      </button>`).join('');
+
+    if (!anyOpt && !staffOpts) {
+      list.innerHTML = `<div class="staff-empty">No staff matches “${query}”</div>`;
+    } else {
+      list.innerHTML = anyOpt + staffOpts;
+    }
+  };
+
+  renderOptions();
 
   const setSelected = idx => {
     const av = document.getElementById('staffTriggerAv');
@@ -1173,7 +1201,7 @@ function buildStaffFilter() {
       plannerState.staffFilter = idx;
       av.style.background = s.bg;
       av.textContent = staffInitials(s.name);
-      text.innerHTML = `<span class="name">${s.name}</span><span class="role">${s.role}</span>`;
+      text.innerHTML = `<span class="name">${s.name}</span>`;
     }
   };
 
@@ -1181,17 +1209,36 @@ function buildStaffFilter() {
     menu.hidden = true;
     wrap.classList.remove('open');
     trigger.setAttribute('aria-expanded', 'false');
+    searchInput.value = '';
+    renderOptions();
   };
   const openMenu = () => {
     menu.hidden = false;
     wrap.classList.add('open');
     trigger.setAttribute('aria-expanded', 'true');
+    // Defer focus until the menu is rendered so it actually lands
+    setTimeout(() => searchInput.focus(), 0);
   };
+
   trigger.addEventListener('click', e => {
     e.stopPropagation();
     menu.hidden ? openMenu() : closeMenu();
   });
-  menu.addEventListener('click', e => {
+  searchInput.addEventListener('input', e => {
+    renderOptions(e.target.value);
+  });
+  searchInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      // Pick the first matching staff option (skip "Any" since it's only there with no query)
+      const first = list.querySelector('.staff-option:not(.is-any)');
+      if (first) {
+        const v = first.dataset.idx;
+        setSelected(v === '' ? null : parseInt(v, 10));
+        closeMenu();
+      }
+    }
+  });
+  list.addEventListener('click', e => {
     const opt = e.target.closest('.staff-option');
     if (!opt) return;
     const v = opt.dataset.idx;
