@@ -1,0 +1,1210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Phorest – Appointment Planner Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; font-family: 'Inter', sans-serif; background: #f9fafb; overflow: hidden; }
+
+  /* ───── Layout ─────────────────────────────────────────────────────── */
+  .app { display: flex; height: 100vh; width: 100%; position: relative; overflow: hidden; }
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+
+  /* ───── Sidebar ────────────────────────────────────────────────────── */
+  .sidebar { width: 60px; background: linear-gradient(180deg,#009F6E,#019A6C); display: flex; flex-direction: column; align-items: center; padding: 12px 8px; gap: 8px; flex-shrink: 0; }
+  .logo-tile { background: white; border-radius: 8px; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; margin-bottom: 2px; }
+  .clock { color: white; text-align: center; margin-bottom: 4px; }
+  .clock .t { font-size: 13px; font-weight: 700; line-height: 1.1; }
+  .clock .d { font-size: 11px; font-weight: 500; }
+  .nav-group { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+  .nav-group.top { flex: 1; }
+  .nav-btn { width: 100%; height: 44px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; background: rgba(255,255,255,0.2); transition: background 120ms ease, box-shadow 120ms ease; color: white; }
+  .nav-btn:not(.active):hover { background: rgba(255,255,255,0.32); box-shadow: inset 0 0 0 2px #fff; }
+  .nav-btn.active { background: white; color: #000; }
+
+  /* ───── Buttons ────────────────────────────────────────────────────── */
+  .btn { font-family: 'Inter',sans-serif; font-size: 14px; font-weight: 500; border-radius: 4px; padding: 0 16px; height: 40px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; border: 1px solid #000; border-bottom-width: 2px; color: #000; }
+  .btn-primary { background: #FBBF24; }
+  .btn-primary:hover { background: #f5b01a; }
+  .btn-secondary { background: #fff; }
+  .btn-secondary:hover { background: #e5e7eb; }
+  .btn-sm { padding: 0 12px; }
+  .btn-xs { padding: 0 10px; gap: 4px; }
+  .btn-icon { padding: 0 10px; }
+
+  /* ───── Header ─────────────────────────────────────────────────────── */
+  /* Background = sidebar green @ 10% over white = #E5F5F0 */
+  .header { background: #E5F5F0; border-bottom: 1px solid #e5e7eb; padding: 0 16px; height: 60px; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .header .title { flex: 1; text-align: center; }
+  .header .title .main { font-size: 15px; font-weight: 600; }
+  .header .title .sub { font-size: 12px; color: #6b7280; }
+  .view-group { display: flex; gap: 0; }
+  .view-group .btn:first-child { border-radius: 4px 0 0 4px; }
+  .view-group .btn:last-child { border-radius: 0 4px 4px 0; border-left: none; }
+
+  /* ───── Sub-header ─────────────────────────────────────────────────── */
+  .subheader { background: white; border-bottom: 1px solid #e5e7eb; padding: 0 16px; height: 56px; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .day-pills { flex: 1; display: flex; gap: 0; justify-content: center; }
+  .day-pills .btn { border-radius: 0; border-left: none; }
+  .day-pills .btn:first-child { border-radius: 4px 0 0 4px; border-left: 1px solid #000; }
+  .day-pills .btn:last-child { border-radius: 0 4px 4px 0; }
+
+  /* ───── Body row (calendar + right rail) ───────────────────────────── */
+  .body-row { flex: 1; display: flex; min-height: 0; overflow: hidden; }
+
+  /* ───── Calendar ───────────────────────────────────────────────────── */
+  .cal-wrap { flex: 1; display: flex; min-height: 0; overflow: hidden; min-width: 0; }
+  .time-col { width: 52px; flex-shrink: 0; display: flex; flex-direction: column; }
+  .time-col .spacer { height: 36px; border-bottom: 1px solid #e5e7eb; flex-shrink: 0; }
+  .time-col .hours { flex: 1; display: flex; flex-direction: column; }
+  .time-col .hour { flex: 1; border-bottom: 1px solid #f3f4f6; position: relative; }
+  .time-col .hour-label { position: absolute; top: -7px; left: 6px; font-size: 10px; color: #9ca3af; background: #f9fafb; padding: 0 2px; }
+  .staff-col { flex: 1; border-left: 1px solid #e5e7eb; display: flex; flex-direction: column; min-width: 0; }
+  .staff-header { height: 36px; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; gap: 6px; padding: 0 8px; flex-shrink: 0; }
+  .staff-header .avatar { width: 22px; height: 22px; border-radius: 50%; background: rgba(255,255,255,0.25); display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; color: white; flex-shrink: 0; }
+  .staff-header .name { font-size: 11px; font-weight: 600; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .slots { position: relative; flex: 1; display: flex; flex-direction: column; }
+  .slot { flex: 1; min-height: 0; }
+  .slot.even { background: #fff; }
+  .slot.odd { background: #F3F4F6; }
+  .appt { position: absolute; left: 2px; right: 2px; padding: 3px 6px; overflow: hidden; pointer-events: none; }
+  .appt.is-new { outline: 2px solid #FBBF24; outline-offset: -1px; animation: pop 240ms ease-out; }
+  @keyframes pop { 0% { transform: scale(0.92); } 60% { transform: scale(1.03); } 100% { transform: scale(1); } }
+  .appt .n { font-size: 11px; font-weight: 700; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .appt .s { font-size: 11px; color: rgba(255,255,255,0.85); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .appt .t { font-size: 10px; color: rgba(255,255,255,0.8); }
+  /* WCAG AA: switch to black text when background is too light for white */
+  .appt.dark-text .n { color: #000; }
+  .appt.dark-text .s { color: rgba(0,0,0,0.78); }
+  .appt.dark-text .t { color: rgba(0,0,0,0.65); }
+
+  /* ───── Right rail ─────────────────────────────────────────────────── */
+  .right-rail { width: 56px; flex-shrink: 0; background: #f9fafb; border-left: 1px solid #e5e7eb; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding: 12px 0; gap: 8px; }
+  .rail-btn { width: 40px; height: 40px; border-radius: 4px; border: 1px solid #000; border-bottom-width: 2px; background: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; color: #000; }
+  .rail-btn:hover { background: #e5e7eb; }
+  .rail-btn svg { display: block; }
+
+  /* ───── Footer ─────────────────────────────────────────────────────── */
+  /* Background = sidebar green @ 10% over white = #E5F5F0 */
+  .footer { background: #E5F5F0; border-top: 1px solid #e5e7eb; padding: 12px 16px; display: flex; gap: 8px; flex-shrink: 0; }
+
+  /* ───── Slideover (shared) ─────────────────────────────────────────── */
+  .slideover-bg { position: absolute; inset: 0; z-index: 40; display: none; }
+  .slideover-bg.show { display: flex; }
+  .slideover-bg .scrim { flex: 1; background: rgba(0,0,0,0.3); }
+  .slideover { width: 500px; background: white; height: 100%; display: flex; flex-direction: column; box-shadow: -4px 0 24px rgba(0,0,0,0.15); overflow: hidden; }
+  .slideover-header { padding: 16px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-shrink: 0; }
+  .slideover-header .h-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .slideover-header .title { font-size: 17px; font-weight: 600; }
+  .slideover-header .actions { display: flex; gap: 8px; align-items: center; }
+  .icon-btn { width: 40px; height: 40px; border-radius: 4px; border: 1px solid #000; border-bottom-width: 2px; background: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; color: #000; flex-shrink: 0; }
+  .icon-btn:hover { background: #e5e7eb; }
+  .slideover-body { flex: 1; overflow-y: auto; }
+
+  /* ───── Inputs ─────────────────────────────────────────────────────── */
+  .input { flex: 1; border: 1px solid #d1d5db; border-radius: 6px; padding: 8px 12px; font-size: 14px; font-family: 'Inter',sans-serif; outline: none; }
+  .input:focus { border-color: #009F6E; box-shadow: 0 0 0 3px rgba(0,159,110,0.15); }
+
+  /* ───── Client list ────────────────────────────────────────────────── */
+  .search-area { padding: 14px 16px 8px; display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; }
+  .search-row { display: flex; gap: 10px; }
+  .section-label { font-size: 12px; color: #9ca3af; font-weight: 500; padding: 8px 16px 4px; }
+  .section-label.alpha { font-weight: 600; padding: 10px 16px 4px; background: #f9fafb; }
+  .client-row { display: flex; align-items: center; gap: 12px; padding: 11px 16px; cursor: pointer; border-bottom: 1px solid #f3f4f6; }
+  .client-row:hover { background: #f9fafb; }
+  .client-row .avatar { position: relative; width: 40px; height: 40px; border-radius: 50%; background: #9ca3af; color: white; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; flex-shrink: 0; overflow: hidden; }
+  .client-row .avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .client-row .info .n { font-size: 14px; font-weight: 500; }
+  .client-row .info .p, .client-row .info .e { font-size: 12px; color: #6b7280; }
+  .new-client-bar { border-top: 1px solid #e5e7eb; padding: 12px 16px; flex-shrink: 0; }
+
+  /* ───── Service picker ─────────────────────────────────────────────── */
+  .search-wrap { padding: 12px 16px 0; flex-shrink: 0; display: flex; flex-direction: column; gap: 10px; }
+  .field-label { font-size: 12px; font-weight: 500; color: #374151; margin-bottom: -4px; }
+  .staff-select-wrap { position: relative; }
+  .staff-trigger { width: 100%; display: flex; align-items: center; gap: 10px; border: 1px solid #d1d5db; border-radius: 6px; padding: 6px 36px 6px 8px; background: #fff; cursor: pointer; outline: none; font-family: 'Inter',sans-serif; text-align: left; min-height: 44px; }
+  .staff-trigger:hover { background: #f9fafb; }
+  .staff-trigger:focus-visible { border-color: #009F6E; box-shadow: 0 0 0 3px rgba(0,159,110,0.15); }
+  .staff-trigger .av { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: white; flex-shrink: 0; background: #9ca3af; }
+  .staff-trigger .text { flex: 1; min-width: 0; }
+  .staff-trigger .name { font-size: 14px; font-weight: 600; color: #111827; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .staff-trigger .role { font-size: 12px; color: #6b7280; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .staff-trigger .placeholder { font-size: 14px; color: #6b7280; }
+  .staff-select-wrap .chev { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; color: #6b7280; transition: transform 120ms ease; }
+  .staff-select-wrap.open .chev { transform: translateY(-50%) rotate(180deg); }
+  .staff-menu { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: #fff; border: 1px solid #e5e7eb; border-radius: 6px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); z-index: 10; max-height: 320px; overflow-y: auto; padding: 4px 0; }
+  .staff-menu[hidden] { display: none; }
+  .staff-option { display: flex; align-items: center; gap: 12px; padding: 8px 12px; cursor: pointer; border: none; background: transparent; width: 100%; text-align: left; font-family: 'Inter',sans-serif; }
+  .staff-option:hover, .staff-option:focus-visible { background: #f3f4f6; outline: none; }
+  .staff-option .av { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: white; flex-shrink: 0; }
+  .staff-option .name { font-size: 14px; font-weight: 700; color: #111827; }
+  .staff-option .role { font-size: 12px; color: #6b7280; margin-top: 1px; }
+  .staff-option.is-any .av { background: #6b7280; }
+  .search-field { position: relative; }
+  .search-field .icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); pointer-events: none; }
+  .search-field .input { width: 100%; padding-left: 34px; }
+  .cat-list { flex: 1; overflow-y: auto; margin-top: 12px; border-top: 1px solid #f3f4f6; }
+  .cat-row { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid #f3f4f6; cursor: pointer; }
+  .cat-row:hover { background: #f9fafb; }
+  .cat-row .av { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: white; flex-shrink: 0; }
+  .cat-row .n { font-size: 14px; font-weight: 600; }
+  /* Service item view (after picking a category) */
+  #svcView { flex: 1; display: flex; flex-direction: column; overflow: hidden; margin-top: 12px; border-top: 1px solid #f3f4f6; }
+  #svcView.hidden { display: none; }
+  .svc-list { flex: 1; overflow-y: auto; }
+  .svc-item { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid #f3f4f6; cursor: pointer; }
+  .svc-item:hover { background: #f9fafb; }
+  .svc-item .av { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: white; flex-shrink: 0; }
+  .svc-item .info { flex: 1; min-width: 0; }
+  .svc-item .n { font-size: 14px; font-weight: 700; color: #111827; }
+  .svc-item .meta { display: flex; align-items: center; gap: 12px; margin-top: 4px; }
+  .svc-item .meta-item { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #6b7280; }
+  .svc-item .meta-item svg { flex-shrink: 0; }
+
+  /* ───── Planner main (Creating Appointments) ───────────────────────── */
+  #plannerMainBody { background: #e5e7eb; }
+  .panel { border: 1px solid #d1d5db; border-radius: 6px; background: white; margin: 0 16px 12px; padding: 12px; }
+  .panel:first-child { margin-top: 12px; }
+  .panel-h { font-size: 14px; font-weight: 600; margin-bottom: 10px; }
+  .client-card { display: flex; align-items: center; gap: 12px; padding: 0; }
+  .client-card .av { width: 44px; height: 44px; border-radius: 50%; background: #9ca3af; color: white; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 600; flex-shrink: 0; overflow: hidden; position: relative; }
+  .client-card .av img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .client-card .n { font-size: 15px; font-weight: 600; }
+  .client-card .p, .client-card .e { font-size: 13px; color: #6b7280; }
+  .planner-svc { display: flex; align-items: stretch; border: 1px solid #e5e7eb; border-radius: 4px; overflow: hidden; margin-bottom: 8px; background: #fff; }
+  .planner-svc .bar { width: 6px; flex-shrink: 0; }
+  .planner-svc .body { flex: 1; padding: 10px 12px; min-width: 0; }
+  .planner-svc .row1 { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .planner-svc .n { font-size: 14px; font-weight: 700; }
+  .planner-svc .with { font-size: 13px; color: #374151; text-decoration: underline; cursor: pointer; }
+  .planner-svc .pills { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+  .p-pill { border: 1px solid #d1d5db; border-radius: 4px; padding: 4px 10px; font-size: 12px; font-weight: 500; background: white; }
+  .planner-svc .rm { width: 36px; align-self: center; border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #6b7280; padding: 6px; }
+  .planner-svc .rm:hover { color: #000; }
+  .add-svc-row { padding: 4px 0 0; }
+
+  /* Mini month calendar */
+  .mini-cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .mini-cal-title { font-size: 14px; font-weight: 600; }
+  .mini-cal-nav { display: flex; gap: 4px; }
+  .mini-cal-nav button { width: 28px; height: 28px; border-radius: 4px; border: 1px solid #d1d5db; background: white; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #000; }
+  .mini-cal-nav button:hover { background: #e5e7eb; }
+  .mini-dow { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 4px; }
+  .mini-dow > div { font-size: 10px; text-align: center; color: #9ca3af; text-transform: uppercase; font-weight: 600; padding: 4px 0; }
+  .mini-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .mini-day { aspect-ratio: 1; min-height: 40px; max-height: 40px; display: flex; align-items: center; justify-content: center; font-size: 13px; border-radius: 4px; border: 1px solid transparent; background: transparent; cursor: default; color: #d1d5db; padding: 0; font-family: inherit; font-weight: 500; }
+  .mini-day.available { color: #000; cursor: pointer; background: #fff; border: 1px solid #000; border-bottom-width: 2px; }
+  .mini-day.available:hover { background: #e5e7eb; }
+  .mini-day.today { border-color: #FBBF24; font-weight: 600; }
+  .mini-day.available.today { border: 1px solid #FBBF24; border-bottom-width: 2px; }
+  .mini-day.selected { background: #FBBF24; font-weight: 700; }
+  .mini-day.available.selected { background: #FBBF24; border: 1px solid #000; border-bottom-width: 2px; }
+
+  /* Time grid */
+  .avail-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .avail-back { width: 28px; height: 28px; border-radius: 4px; border: 1px solid #d1d5db; background: white; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #000; }
+  .avail-back:hover { background: #e5e7eb; }
+  .avail-date { font-size: 13px; color: #6b7280; }
+  .time-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .time-slot { padding: 0; height: 38px; border-radius: 4px; border: 1px solid #000; border-bottom-width: 2px; background: white; font-family: inherit; font-size: 14px; font-weight: 500; cursor: pointer; color: #000; }
+  .time-slot:hover { background: #FEEDA9; }
+  .time-slot.disabled { border-color: #e5e7eb; color: #d1d5db; cursor: not-allowed; background: #f9fafb; }
+  .time-slot.disabled:hover { background: #f9fafb; }
+
+  /* Toast */
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #111827; color: white; font-size: 14px; padding: 10px 16px; border-radius: 6px; box-shadow: 0 8px 24px rgba(0,0,0,0.2); opacity: 0; pointer-events: none; transition: opacity 200ms ease; z-index: 100; }
+  .toast.show { opacity: 1; }
+
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+  <!-- ─── SIDEBAR ─────────────────────────────────────────────── -->
+  <div class="sidebar">
+    <div class="logo-tile">
+      <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+        <path d="M5 22 C 8 14, 11 10, 14 12 C 16 13, 14 18, 12 19 C 10 20, 9 17, 12 14 C 16 10, 21 9, 24 12 C 26 14, 24 18, 21 18" stroke="#EC4899" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="25" cy="20" r="1.4" fill="#EC4899"/>
+      </svg>
+    </div>
+    <div class="clock">
+      <div class="t">23:06</div>
+      <div class="d">6 May</div>
+    </div>
+    <div class="nav-group top">
+      <!-- Appointments -->
+      <div class="nav-btn active" aria-label="Appointments">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M7.75 4C7.75 3.58579 7.41421 3.25 7 3.25C6.58579 3.25 6.25 3.58579 6.25 4V5.81643C4.75693 6.02751 3.57738 7.20845 3.3777 8.71484L3.29115 9.36779C3.27647 9.47849 3.26244 9.58926 3.24905 9.70008C3.21354 9.99405 3.44514 10.25 3.74125 10.25H20.2587C20.5548 10.25 20.7864 9.99405 20.7509 9.70008C20.7375 9.58926 20.7235 9.47849 20.7088 9.36779L20.6222 8.71484C20.4226 7.20847 19.243 6.02754 17.75 5.81644V4C17.75 3.58579 17.4142 3.25 17 3.25C16.5858 3.25 16.25 3.58579 16.25 4V5.66763C13.4223 5.4158 10.5777 5.4158 7.75 5.66763V4Z" fill="currentColor"/>
+          <path d="M20.9446 12.2256C20.9358 11.9591 20.7156 11.75 20.4491 11.75H3.55087C3.28429 11.75 3.06413 11.9591 3.05537 12.2256C2.99598 14.0332 3.10578 15.8446 3.38451 17.6359C3.59552 18.9919 4.69718 20.0335 6.06292 20.1681L7.25593 20.2858C10.411 20.5969 13.589 20.5969 16.744 20.2858L17.937 20.1681C19.3028 20.0335 20.4044 18.9919 20.6154 17.6359C20.8942 15.8446 21.004 14.0332 20.9446 12.2256Z" fill="currentColor"/>
+        </svg>
+      </div>
+      <!-- Clients -->
+      <div class="nav-btn" aria-label="Clients">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 3.75C9.92893 3.75 8.25 5.42893 8.25 7.5C8.25 9.57107 9.92893 11.25 12 11.25C14.0711 11.25 15.75 9.57107 15.75 7.5C15.75 5.42893 14.0711 3.75 12 3.75Z" fill="currentColor"/>
+          <path d="M8 13.25C5.92893 13.25 4.25 14.9289 4.25 17V18.1883C4.25 18.9415 4.79588 19.5837 5.53927 19.7051C9.8181 20.4037 14.1819 20.4037 18.4607 19.7051C19.2041 19.5837 19.75 18.9415 19.75 18.1883V17C19.75 14.9289 18.0711 13.25 16 13.25H15.6591C15.4746 13.25 15.2913 13.2792 15.1159 13.3364L14.2504 13.6191C12.7881 14.0965 11.2119 14.0965 9.74959 13.6191L8.88407 13.3364C8.70869 13.2792 8.52536 13.25 8.34087 13.25H8Z" fill="currentColor"/>
+        </svg>
+      </div>
+      <!-- Marketing -->
+      <div class="nav-btn" aria-label="Marketing">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M19.8361 16.9064C20.2793 12.6469 20.2793 8.35292 19.8361 4.09343C19.6975 2.76112 18.1614 2.08623 17.0863 2.88535L12.9827 5.93576C11.6891 6.89732 10.1202 7.41658 8.5084 7.41658H4.6792C4.12691 7.41658 3.6792 7.86429 3.6792 8.41658V12.5832C3.6792 13.1355 4.12691 13.5832 4.6792 13.5832L8.50839 13.5832C10.1202 13.5832 11.6891 14.1025 12.9827 15.0641L17.0863 18.1145C18.1614 18.9136 19.6975 18.2387 19.8361 16.9064Z" fill="currentColor"/>
+          <path d="M9.09262 15.8019C9.15006 15.5774 9.10055 15.339 8.95848 15.156C8.8164 14.973 8.59773 14.8659 8.36604 14.8659L6.36604 14.8659C6.08196 14.8659 5.82226 15.0264 5.69522 15.2805L4.69522 17.2805C4.52444 17.6221 4.63756 18.0374 4.95794 18.2452L7.09191 19.6292C7.29452 19.7606 7.548 19.7864 7.77293 19.6985C7.99786 19.6106 8.16672 19.4198 8.22659 19.1859L9.09262 15.8019Z" fill="currentColor"/>
+        </svg>
+      </div>
+      <!-- Purchase -->
+      <div class="nav-btn" aria-label="Purchase">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M19.1477 5.25H5.33514L4.15497 3.1346C4.0225 2.89715 3.7719 2.75 3.5 2.75H2C1.58579 2.75 1.25 3.08579 1.25 3.5C1.25 3.91421 1.58579 4.25 2 4.25H3.0596L4.22429 6.33765L6.91037 12.2809L6.91312 12.2869L7.14971 12.8104L4.45287 15.687C4.25895 15.8939 4.19825 16.1924 4.29599 16.4585C4.39372 16.7247 4.63317 16.913 4.91486 16.9452L7.37299 17.2261C10.4477 17.5775 13.5524 17.5775 16.627 17.2261L19.0852 16.9452C19.4967 16.8981 19.7922 16.5264 19.7452 16.1148C19.6981 15.7033 19.3264 15.4078 18.9149 15.4549L16.4567 15.7358C13.4952 16.0742 10.5048 16.0742 7.54331 15.7358L6.56779 15.6243L8.54717 13.513C8.56632 13.4925 8.5841 13.4713 8.60052 13.4494L9.35334 13.5474C10.4083 13.6847 11.4746 13.7116 12.5351 13.6277C15.0086 13.4321 17.301 12.2551 18.9015 10.3591L19.4795 9.67425C19.499 9.65125 19.517 9.62711 19.5335 9.60194L20.6109 7.96009C21.3745 6.79633 20.5397 5.25 19.1477 5.25Z" fill="currentColor"/>
+          <path d="M6.5 18.5C5.67157 18.5 5 19.1716 5 20C5 20.8284 5.67157 21.5 6.5 21.5C7.32843 21.5 8 20.8284 8 20C8 19.1716 7.32843 18.5 6.5 18.5Z" fill="currentColor"/>
+          <path d="M16 20C16 19.1716 16.6716 18.5 17.5 18.5C18.3284 18.5 19 19.1716 19 20C19 20.8284 18.3284 21.5 17.5 21.5C16.6716 21.5 16 20.8284 16 20Z" fill="currentColor"/>
+        </svg>
+      </div>
+      <!-- Manager -->
+      <div class="nav-btn" aria-label="Manager">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M13.0389 3.58189C12.4395 3.26901 11.616 3.26431 11.0123 3.57608C8.43371 4.90782 6.09703 6.43365 4.05106 8.12426C3.77823 8.3497 3.59769 8.66523 3.60078 9.02588C3.60386 9.3853 3.7885 9.69732 4.06043 9.91966C6.08993 11.5791 8.42925 13.1067 10.961 14.4281C11.5605 14.741 12.3839 14.7457 12.9876 14.4339C15.5662 13.1022 17.9029 11.5763 19.9489 9.88574C20.2217 9.6603 20.4023 9.34477 20.3992 8.98411C20.3961 8.62469 20.2114 8.31268 19.9395 8.09033C17.91 6.43089 15.5707 4.90327 13.0389 3.58189Z" fill="currentColor"/>
+          <path d="M20.958 13.7314C21.3094 13.512 21.4164 13.0494 21.197 12.698C20.9776 12.3467 20.515 12.2397 20.1636 12.459L14.0564 16.2719C13.5124 16.6116 12.7732 16.8009 11.9998 16.801C11.2264 16.801 10.4872 16.6117 9.94301 16.2721L3.90268 12.5024C3.55128 12.2831 3.08864 12.3902 2.86934 12.7416C2.65003 13.093 2.75711 13.5556 3.10851 13.7749L9.14884 17.5446C9.9777 18.0619 11.006 18.301 11.9999 18.301C12.9938 18.3009 14.022 18.0617 14.8508 17.5443L20.958 13.7314Z" fill="currentColor"/>
+          <path d="M20.9581 17.4861C21.3094 17.2667 21.4164 16.804 21.197 16.4527C20.9776 16.1013 20.5149 15.9944 20.1635 16.2138L14.8746 19.5167C14.1018 19.9993 13.068 20.2602 11.9998 20.2602C10.9316 20.2603 9.89764 19.9995 9.12462 19.517L3.90276 16.2572C3.55139 16.0378 3.08873 16.1448 2.86938 16.4962C2.65004 16.8476 2.75706 17.3102 3.10843 17.5296L8.3303 20.7894C9.38808 21.4497 10.7111 21.7603 11.9998 21.7602C13.2886 21.7602 14.6115 21.4494 15.6692 20.7889L20.9581 17.4861Z" fill="currentColor"/>
+        </svg>
+      </div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-btn"><svg width="22" height="22" viewBox="0 0 24 24"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zM12.75 6a.75.75 0 0 0-1.5 0v6c0 .414.336.75.75.75h4.5a.75.75 0 0 0 0-1.5h-3.75V6z" fill="rgba(255,255,255,0.8)"/></svg></div>
+      <div class="nav-btn"><svg width="22" height="22" viewBox="0 0 24 24"><path fill-rule="evenodd" clip-rule="evenodd" d="M19.449 8.448 16.388 11.51a4.459 4.459 0 0 1 0 .978l3.061 3.062a8.25 8.25 0 0 0 0-7.103zM15.552 19.45 12.49 16.389a4.459 4.459 0 0 1-.978 0l-3.062 3.061a8.25 8.25 0 0 0 7.103 0zM4.55 15.552l3.062-3.062a4.459 4.459 0 0 1 0-.978L4.55 8.45a8.25 8.25 0 0 0 0 7.103zM8.448 4.55l3.062 3.062a4.459 4.459 0 0 1 .978 0L15.55 4.55a8.25 8.25 0 0 0-7.103 0zM2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm9.75-3a3 3 0 1 0 0 6 3 3 0 0 0 0-6z" fill="rgba(255,255,255,0.8)"/></svg></div>
+      <div class="nav-btn"><svg width="22" height="22" viewBox="0 0 24 24"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 1.5a5.25 5.25 0 0 0-5.25 5.25v3a3 3 0 0 0-3 3v6.75a3 3 0 0 0 3 3h10.5a3 3 0 0 0 3-3v-6.75a3 3 0 0 0-3-3v-3c0-2.9-2.35-5.25-5.25-5.25zm3.75 8.25v-3a3.75 3.75 0 1 0-7.5 0v3h7.5z" fill="rgba(255,255,255,0.8)"/></svg></div>
+    </div>
+  </div>
+
+  <!-- ─── MAIN ────────────────────────────────────────────────── -->
+  <div class="main">
+    <div class="header">
+      <button class="btn btn-secondary btn-sm">
+        All Staff – Filtered
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
+      </button>
+      <button class="btn btn-secondary btn-sm" aria-label="Filter options">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75"/></svg>
+      </button>
+      <div class="title">
+        <div class="main">Wednesday 6 May 2026</div>
+        <div class="sub">Today</div>
+      </div>
+      <div class="view-group">
+        <button class="btn btn-primary">Day</button>
+        <button class="btn btn-secondary">Week</button>
+      </div>
+      <button class="btn btn-secondary">Date</button>
+    </div>
+
+    <div class="subheader">
+      <button class="btn btn-secondary btn-xs"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18.75 19.5l-7.5-7.5 7.5-7.5m-6 15L5.25 12l7.5-7.5"/></svg>Week</button>
+      <button class="btn btn-secondary btn-xs"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15.75 19.5 8.25 12l7.5-7.5"/></svg>Day</button>
+      <div class="day-pills">
+        <button class="btn btn-primary btn-xs">Today</button>
+        <button class="btn btn-secondary btn-xs">Thu</button>
+        <button class="btn btn-secondary btn-xs">Fri</button>
+        <button class="btn btn-secondary btn-xs">Sat</button>
+        <button class="btn btn-secondary btn-xs">Sun</button>
+        <button class="btn btn-secondary btn-xs">Mon</button>
+        <button class="btn btn-secondary btn-xs">Tue</button>
+      </div>
+      <button class="btn btn-secondary btn-xs">Day <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg></button>
+      <button class="btn btn-secondary btn-xs">Week <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11.25 4.5l7.5 7.5-7.5 7.5m-6-15l7.5 7.5-7.5 7.5"/></svg></button>
+      <button class="btn btn-secondary btn-xs">6 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg></button>
+    </div>
+
+    <!-- ─── Body row: calendar + right rail ─── -->
+    <div class="body-row">
+      <div class="cal-wrap" id="calWrap"></div>
+
+      <!-- ─── RIGHT RAIL (bottom-aligned) ─── -->
+      <aside class="right-rail" aria-label="Calendar tools">
+        <!-- plus -->
+        <button class="rail-btn" aria-label="New appointment" onclick="openPlanner()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
+        </button>
+        <!-- eye-slash -->
+        <button class="rail-btn" aria-label="Hide appointment icons">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />
+          </svg>
+        </button>
+        <!-- user-group -->
+        <button class="rail-btn" aria-label="Staff qualification">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
+          </svg>
+        </button>
+        <!-- clock -->
+        <button class="rail-btn" aria-label="Waitlist">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+          </svg>
+        </button>
+        <!-- printer -->
+        <button class="rail-btn" aria-label="Print calendar">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0 1 10.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0 .229 2.523a1.125 1.125 0 0 1-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0 0 21 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 0 0-1.913-.247M6.34 18H5.25A2.25 2.25 0 0 1 3 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 0 1 1.913-.247m10.5 0a48.536 48.536 0 0 0-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18 10.5h.008v.008H18V10.5Zm-3 0h.008v.008H15V10.5Z" />
+          </svg>
+        </button>
+        <!-- clipboard-document -->
+        <button class="rail-btn" aria-label="Reschedule">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25ZM6.75 12h.008v.008H6.75V12Zm0 3h.008v.008H6.75V15Zm0 3h.008v.008H6.75V18Z" />
+          </svg>
+        </button>
+        <!-- magnifying-glass-plus -->
+        <button class="rail-btn" aria-label="Zoom in">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607ZM10.5 7.5v6m3-3h-6" />
+          </svg>
+        </button>
+        <!-- magnifying-glass-minus -->
+        <button class="rail-btn" aria-label="Zoom out">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607ZM13.5 10.5h-6" />
+          </svg>
+        </button>
+      </aside>
+    </div>
+
+    <div class="footer">
+      <button class="btn btn-secondary btn-sm"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.75l6 6 9-13.5"/></svg>Check In</button>
+      <button class="btn btn-secondary btn-sm"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z"/></svg>Pay</button>
+      <button class="btn btn-secondary btn-sm"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>Remove</button>
+      <button class="btn btn-secondary btn-sm"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15.666 3.888A2.25 2.25 0 0 0 13.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 0 1-.75.75H9a.75.75 0 0 1-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 0 1-2.25 2.25H6.75A2.25 2.25 0 0 1 4.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 0 1 1.927-.184"/></svg>Notes</button>
+      <button class="btn btn-secondary btn-sm"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>Confirm</button>
+      <button class="btn btn-secondary btn-sm" style="margin-left:auto"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg>Undo</button>
+    </div>
+  </div>
+
+  <!-- ─── PLANNER STEP 1: Select Client ───────────────────────── -->
+  <div id="plannerClient" class="slideover-bg">
+    <div class="scrim" onclick="plannerClose()"></div>
+    <div class="slideover">
+      <div class="slideover-header">
+        <div class="h-left">
+          <div class="title">Select client</div>
+        </div>
+        <button class="icon-btn" aria-label="Close" onclick="plannerClose()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 18 18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="search-area">
+        <div class="search-row">
+          <input class="input" placeholder="First name, ID or Treatcard" />
+          <input class="input" placeholder="Last name" />
+        </div>
+        <input class="input" placeholder="Phone number" />
+        <input class="input" placeholder="Email" />
+      </div>
+      <div class="slideover-body">
+        <div class="section-label">Recently interacted with</div>
+        <div id="clientsRecent"></div>
+        <div id="clientsAlpha"></div>
+      </div>
+      <div class="new-client-bar">
+        <button class="btn btn-primary" style="width:100%" onclick="showToast('New client form would open here')">+ New Client</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── PLANNER STEP 2: Select Service ──────────────────────── -->
+  <div id="plannerService" class="slideover-bg">
+    <div class="scrim" onclick="plannerClose()"></div>
+    <div class="slideover">
+      <div class="slideover-header">
+        <div class="h-left">
+          <button class="icon-btn" aria-label="Back" onclick="plannerBack('service')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15.75 19.5 8.25 12l7.5-7.5"/></svg>
+          </button>
+          <div class="title" id="serviceSlideTitle">Select category</div>
+        </div>
+        <button class="icon-btn" aria-label="Close" onclick="plannerClose()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 18 18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="search-wrap">
+        <div>
+          <div class="field-label" id="staffFilterLabel">Staff member</div>
+          <div class="staff-select-wrap" id="staffSelectWrap">
+            <button type="button" class="staff-trigger" id="staffTrigger" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="staffFilterLabel">
+              <span class="av" id="staffTriggerAv" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/></svg>
+              </span>
+              <span class="text" id="staffTriggerText">
+                <span class="placeholder">Any staff member</span>
+              </span>
+            </button>
+            <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
+            <div class="staff-menu" id="staffMenu" role="listbox" hidden></div>
+          </div>
+        </div>
+        <div class="search-field">
+          <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/></svg>
+          <input class="input" placeholder="Search services…" />
+        </div>
+      </div>
+      <!-- Two views: categories list, then services inside a category -->
+      <div id="catView" class="cat-list"></div>
+      <div id="svcView" class="hidden">
+        <div class="svc-list" id="svcList"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── PLANNER STEP 3: Creating Appointments ───────────────── -->
+  <div id="plannerMain" class="slideover-bg">
+    <div class="scrim" onclick="plannerClose()"></div>
+    <div class="slideover">
+      <div class="slideover-header">
+        <div class="h-left">
+          <button class="icon-btn" aria-label="Back" onclick="plannerBack('main')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15.75 19.5 8.25 12l7.5-7.5"/></svg>
+          </button>
+          <div class="title">Creating appointment</div>
+        </div>
+        <button class="icon-btn" aria-label="Close" onclick="plannerClose()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 18 18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="slideover-body" id="plannerMainBody"></div>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+// ─── DATA ─────────────────────────────────────────────────────────────────
+const STAFF = [
+  { initials:"RC", name:"Rich Cullen",       role:"Senior Stylist",    bg:"#7c3aed" },
+  { initials:"RM", name:"Robert Metcalfe",   role:"Stylist",           bg:"#0369a1" },
+  { initials:"VW", name:"Verna Wall",        role:"Colourist",         bg:"#b45309" },
+  { initials:"DM", name:"Derek McAuley",     role:"Therapist (S)",     bg:"#15803d" },
+  { initials:"CM", name:"Carolina Michaels", role:"Senior Therapist",  bg:"#9f1239" },
+  { initials:"RF", name:"Rebecca Fahy",      role:"Stylist",           bg:"#1d4ed8" },
+  { initials:"JK", name:"Josie Kelly",       role:"Nail Tech",         bg:"#0f766e" },
+];
+
+const CLIENTS_RECENT = [
+  { name:"Alex Morrison",     phone:"000999997635242", email:"alex-morrison-test@web.de",      img:"https://i.pravatar.cc/200?img=12" },
+  { name:"Abbie Wright",      phone:"000456789876",    email:"abbie-wright@mailtest.com",       img:"https://i.pravatar.cc/200?img=47" },
+  { name:"Carole Baskin",     phone:"000987777060",    email:"carolina.soledade@phorest.com",   img:"https://i.pravatar.cc/200?img=49" },
+  { name:"Mary Donuts",       phone:"0891234578",      email:"donuts@gooey.ie",                 img:"https://i.pravatar.cc/200?img=20" },
+  { name:"Niamh O'Sullivan",  phone:"0853459988",      email:"niamh.os@example.com",            img:"https://i.pravatar.cc/200?img=32" },
+  { name:"Tom Walsh",         phone:"0879998877",      email:"tom.walsh@example.com",           img:"https://i.pravatar.cc/200?img=11" },
+];
+const CLIENTS_ALL = [
+  // A
+  { name:"Aaron Murphy",        phone:"0851230011", email:"aaron.m@example.com",        img:"https://i.pravatar.cc/200?img=51" },
+  { name:"Aaronasdasd Jumpo",   phone:"404040444",  email:"cillian.moloney@phorest.com",img:"https://i.pravatar.cc/200?img=15" },
+  { name:"Abdiel Lynch",        phone:"",           email:"camilal3@gmail.com",         img:"https://i.pravatar.cc/200?img=33", verified:true },
+  { name:"Abednego Danner",     phone:"",           email:"samuel.massari@phorest.com", img:"https://i.pravatar.cc/200?img=68" },
+  { name:"Adelaide Cooper",     phone:"0879998877", email:"adelaide.c@example.com",     img:"https://i.pravatar.cc/200?img=5"  },
+  { name:"Aisha Reyes",         phone:"0851234567", email:"aisha.r@example.com",        img:"https://i.pravatar.cc/200?img=44" },
+  // B
+  { name:"Bea McKenna",         phone:"0871112233", email:"bea.m@example.com",          img:"https://i.pravatar.cc/200?img=24" },
+  { name:"Brendan O'Reilly",    phone:"0857778899", email:"brendan.or@example.com",     img:"https://i.pravatar.cc/200?img=58" },
+  { name:"Brian Quinn",         phone:"0834455667", email:"brian.q@example.com",        img:"https://i.pravatar.cc/200?img=14" },
+  // C
+  { name:"Caoimhe Lynch",       phone:"0851234001", email:"caoimhe.l@example.com",      img:"https://i.pravatar.cc/200?img=29" },
+  { name:"Cathal Murphy",       phone:"0879876543", email:"cathal.m@example.com",       img:"https://i.pravatar.cc/200?img=60" },
+  { name:"Ciara Tobin",         phone:"0856677123", email:"ciara.t@example.com",        img:"https://i.pravatar.cc/200?img=22" },
+  // D
+  { name:"Darragh O'Sullivan",  phone:"0863366699", email:"darragh.os@example.com",     img:"https://i.pravatar.cc/200?img=13" },
+  { name:"Deirdre Walsh",       phone:"0894433221", email:"deirdre.w@example.com",      img:"https://i.pravatar.cc/200?img=26" },
+  { name:"Donal Byrne",         phone:"0838765432", email:"donal.b@example.com",        img:"https://i.pravatar.cc/200?img=53" },
+  // E
+  { name:"Eilis Kearney",       phone:"0857890123", email:"eilis.k@example.com",        img:"https://i.pravatar.cc/200?img=35" },
+  { name:"Emma Murphy",         phone:"0861234567", email:"emma.m@example.com",         img:"https://i.pravatar.cc/200?img=45" },
+  { name:"Eoin Doyle",          phone:"0851234578", email:"eoin.d@example.com",         img:"https://i.pravatar.cc/200?img=8"  },
+  // F
+  { name:"Fionn Kelly",         phone:"0876543210", email:"fionn.k@example.com",        img:"https://i.pravatar.cc/200?img=18" },
+  { name:"Fiona O'Brien",       phone:"0838876655", email:"fiona.ob@example.com",       img:"https://i.pravatar.cc/200?img=21" },
+  // G
+  { name:"Gemma Ryan",          phone:"0894455667", email:"gemma.r@example.com",        img:"https://i.pravatar.cc/200?img=37" },
+  { name:"Grainne Burke",       phone:"0856677889", email:"grainne.b@example.com",      img:"https://i.pravatar.cc/200?img=42" },
+  // H
+  { name:"Hannah Walsh",        phone:"0871122334", email:"hannah.w@example.com",       img:"https://i.pravatar.cc/200?img=10" },
+  { name:"Harry Tobin",         phone:"0836677889", email:"harry.t@example.com",        img:"https://i.pravatar.cc/200?img=52" },
+  // I
+  { name:"Ide Connolly",        phone:"0894433556", email:"ide.c@example.com",          img:"https://i.pravatar.cc/200?img=43" },
+  // J
+  { name:"Jamie Fitzgerald",    phone:"0851199887", email:"jamie.f@example.com",        img:"https://i.pravatar.cc/200?img=7"  },
+  { name:"Joanne Murphy",       phone:"0879988776", email:"joanne.m@example.com",       img:"https://i.pravatar.cc/200?img=39" },
+  // K
+  { name:"Katie Brennan",       phone:"0837766554", email:"katie.b@example.com",        img:"https://i.pravatar.cc/200?img=23" },
+  { name:"Kieran O'Mahony",     phone:"0892211334", email:"kieran.om@example.com",      img:"https://i.pravatar.cc/200?img=64" },
+  // L
+  { name:"Liadh Devlin",        phone:"0857788991", email:"liadh.d@example.com",        img:"https://i.pravatar.cc/200?img=41" },
+  { name:"Liam Kelly",          phone:"0863344556", email:"liam.k@example.com",         img:"https://i.pravatar.cc/200?img=16" },
+  { name:"Lucy Fitzgerald",     phone:"0834567890", email:"lucy.f@example.com",         img:"https://i.pravatar.cc/200?img=9"  },
+];
+
+const SERVICE_CATEGORIES = [
+  { cat:"Nails",                 abbr:"NA", bg:"#db2777", items:[
+    { name:"Manicure",          duration:45, price:35,  color:"#db2777" },
+    { name:"Gel Manicure",      duration:60, price:45,  color:"#db2777" },
+    { name:"Pedicure",          duration:60, price:40,  color:"#db2777" },
+  ]},
+  { cat:"Cut & Styling",         abbr:"CS", bg:"#4c1d95", items:[
+    { name:"Ladies' Cut",       duration:45, price:45,  color:"#4c1d95" },
+    { name:"Gents' Cut",        duration:30, price:30,  color:"#4c1d95" },
+    { name:"BoHo Blowdry",      duration:30, price:35,  color:"#4c1d95" },
+    { name:"Fringe Trim",       duration:15, price:10,  color:"#4c1d95" },
+  ]},
+  { cat:"Colour With Finish",    abbr:"CW", bg:"#e07b6a", items:[
+    { name:"Full Head Colour",  duration:90,  price:95,  color:"#e07b6a" },
+    { name:"Balayage",          duration:120, price:130, color:"#e07b6a" },
+  ]},
+  { cat:"Botox",                 abbr:"BO", bg:"#86efac", items:[
+    { name:"Botox 100ml",       duration:60, price:280, color:"#86efac" },
+  ]},
+  { cat:"Colour Without Finish", abbr:"CW", bg:"#6ee7b7", items:[
+    { name:"Toner",             duration:30, price:40,  color:"#6ee7b7" },
+  ]},
+  { cat:"Intense Pulse Light",   abbr:"IP", bg:"#4ade80", items:[
+    { name:"IPL Full Leg",      duration:60, price:120, color:"#4ade80" },
+    { name:"IPL Underarm",      duration:30, price:60,  color:"#4ade80" },
+  ]},
+  { cat:"Treatments",            abbr:"TR", bg:"#f87171", items:[
+    { name:"Skin Booster 1ml",  duration:30, price:150, color:"#f87171" },
+    { name:"Micro Blading",     duration:60, price:180, color:"#f87171" },
+  ]},
+  { cat:"Aesthetics",            abbr:"AE", bg:"#86efac", items:[
+    { name:"Wrinkle Relaxer",   duration:30, price:200, color:"#86efac" },
+  ]},
+  { cat:"Injectables",           abbr:"IN", bg:"#c084fc", items:[
+    { name:"Lip Filler 1ml",    duration:45, price:350, color:"#c084fc" },
+  ]},
+  { cat:"Special Offer Blowdry", abbr:"SO", bg:"#a78bfa", items:[
+    { name:"Blowdry Special",   duration:30, price:20,  color:"#a78bfa" },
+  ]},
+  { cat:"Video Consultations",   abbr:"VC", bg:"#065f46", items:[
+    { name:"Video Consult",     duration:30, price:0,   color:"#065f46" },
+  ]},
+];
+
+const HOURS = [9,10,11,12,13,14,15,16,17,18,19];
+// In this layout 1px == 1 minute past 9:00. topPx=0 → 09:00, topPx=120 → 11:00, etc.
+
+const APPTS = [
+  // Column 0 – Rich Cullen (purple)
+  { col:0, topPx:0,   hPx:60,  name:"Sarah M.",          service:"Cut & Blowdry",       time:"09:00–10:00", color:"#4c1d95" },
+  { col:0, topPx:60,  hPx:30,  name:"Liam K.",           service:"Gents' Cut",          time:"10:00–10:30", color:"#4c1d95" },
+  { col:0, topPx:120, hPx:120, name:"Niamh O.",          service:"Balayage",            time:"11:00–13:00", color:"#e07b6a" },
+  { col:0, topPx:270, hPx:45,  name:"Katie B.",          service:"Ladies' Cut",         time:"13:30–14:15", color:"#4c1d95" },
+  { col:0, topPx:330, hPx:60,  name:"Paula O'Brien",     service:"Full Head Colour",    time:"14:30–15:30", color:"#e07b6a" },
+  { col:0, topPx:405, hPx:45,  name:"Mary Q.",           service:"BoHo Blowdry",        time:"15:45–16:30", color:"#4c1d95" },
+  { col:0, topPx:480, hPx:60,  name:"Sophie L.",         service:"Lash Lift",           time:"17:00–18:00", color:"#0f766e" },
+  // Column 1 – Robert Metcalfe (blue)
+  { col:1, topPx:0,   hPx:45,  name:"Tom Walsh",         service:"Gents' Cut",          time:"09:00–09:45", color:"#0369a1" },
+  { col:1, topPx:60,  hPx:60,  name:"Hannah S.",         service:"Manicure",            time:"10:00–11:00", color:"#db2777" },
+  { col:1, topPx:135, hPx:45,  name:"Youri Gagarin",     service:"Wrinkle Relaxer",     time:"11:15–12:00", color:"#86efac" },
+  { col:1, topPx:210, hPx:45,  name:"Leslie Nope",       service:"Colour Consultation", time:"12:30–13:15", color:"#6b7280" },
+  { col:1, topPx:270, hPx:30,  name:"Lunch",             service:"",                    time:"13:30–14:00", color:"#1f2937" },
+  { col:1, topPx:330, hPx:60,  name:"Fiona O'Sullivan",  service:"Micro blading",       time:"14:30–15:30", color:"#f87171" },
+  { col:1, topPx:420, hPx:60,  name:"Anna D.",           service:"Skin Booster 1ml",    time:"16:00–17:00", color:"#f87171" },
+  { col:1, topPx:510, hPx:45,  name:"Youri G.",          service:"Fringe Trim",         time:"17:30–18:15", color:"#4c1d95" },
+  // Column 2 – Verna Wall (amber)
+  { col:2, topPx:30,  hPx:45,  name:"German Fútbol Team",service:"Skin Booster 1ml",    time:"09:30–10:15", color:"#f87171" },
+  { col:2, topPx:90,  hPx:30,  name:"Una P.",            service:"Toner",               time:"10:30–11:00", color:"#6ee7b7" },
+  { col:2, topPx:135, hPx:60,  name:"Decompress",        service:"",                    time:"11:15–12:15", color:"#374151" },
+  { col:2, topPx:210, hPx:60,  name:"Lunch",             service:"",                    time:"12:30–13:30", color:"#1f2937" },
+  { col:2, topPx:285, hPx:45,  name:"Emma D.",           service:"IPL Full Leg",        time:"13:45–14:30", color:"#4ade80" },
+  { col:2, topPx:345, hPx:120, name:"Niamh T.",          service:"Balayage",            time:"14:45–16:45", color:"#e07b6a" },
+  { col:2, topPx:480, hPx:45,  name:"Caroline P.",       service:"Brow Tint",           time:"17:00–17:45", color:"#4ade80" },
+  // Column 3 – Derek McAuley (green)
+  { col:3, topPx:0,   hPx:60,  name:"Ann P.",            service:"Pedicure",            time:"09:00–10:00", color:"#db2777" },
+  { col:3, topPx:60,  hPx:60,  name:"Tara M.",           service:"Highlights",          time:"10:00–11:00", color:"#e07b6a" },
+  { col:3, topPx:135, hPx:60,  name:"Clare Test2",       service:"Botox 100ml",         time:"11:15–12:15", color:"#86efac" },
+  { col:3, topPx:210, hPx:30,  name:"Break",             service:"",                    time:"12:30–13:00", color:"#374151" },
+  { col:3, topPx:255, hPx:45,  name:"David K.",          service:"Gents' Cut",          time:"13:15–14:00", color:"#4c1d95" },
+  { col:3, topPx:315, hPx:30,  name:"Lunch",             service:"",                    time:"14:15–14:45", color:"#1f2937" },
+  { col:3, topPx:360, hPx:90,  name:"Siobhan M.",        service:"Full Head Colour",    time:"15:00–16:30", color:"#e07b6a" },
+  { col:3, topPx:465, hPx:60,  name:"Beth O.",           service:"Manicure",            time:"16:45–17:45", color:"#db2777" },
+  // Column 4 – Carolina Michaels (rose)
+  { col:4, topPx:0,   hPx:45,  name:"Jamie F.",          service:"Gents' Cut",          time:"09:00–09:45", color:"#4c1d95" },
+  { col:4, topPx:60,  hPx:60,  name:"Maria C.",          service:"Gel Manicure",        time:"10:00–11:00", color:"#db2777" },
+  { col:4, topPx:135, hPx:30,  name:"Holly R.",          service:"Fringe Trim",         time:"11:15–11:45", color:"#4c1d95" },
+  { col:4, topPx:180, hPx:45,  name:"Margot D.",         service:"Brow Tint",           time:"12:00–12:45", color:"#4ade80" },
+  { col:4, topPx:240, hPx:45,  name:"Lunch",             service:"",                    time:"13:00–13:45", color:"#1f2937" },
+  { col:4, topPx:300, hPx:45,  name:"Test 2",            service:"Cut & Finish",        time:"14:00–14:45", color:"#9f1239" },
+  { col:4, topPx:360, hPx:60,  name:"Lucy B.",           service:"Blowdry Special",     time:"15:00–16:00", color:"#a78bfa" },
+  { col:4, topPx:435, hPx:60,  name:"Anna B.",           service:"Highlights",          time:"16:15–17:15", color:"#e07b6a" },
+  // Column 5 – Rebecca Fahy (indigo)
+  { col:5, topPx:0,   hPx:105, name:"Raquelle D.",       service:"Full Body Wrap",      time:"09:00–10:45", color:"#1d4ed8" },
+  { col:5, topPx:120, hPx:60,  name:"Mei Z.",            service:"Ladies' Cut",         time:"11:00–12:00", color:"#1d4ed8" },
+  { col:5, topPx:195, hPx:45,  name:"Josie Kelly",       service:"BoHo Blowdry",        time:"12:15–13:00", color:"#4c1d95" },
+  { col:5, topPx:255, hPx:30,  name:"Lunch",             service:"",                    time:"13:15–13:45", color:"#1f2937" },
+  { col:5, topPx:300, hPx:60,  name:"Rachel M.",         service:"Lip Filler 1ml",      time:"14:00–15:00", color:"#c084fc" },
+  { col:5, topPx:375, hPx:45,  name:"Sile M.",           service:"Wrinkle Relaxer",     time:"15:15–16:00", color:"#86efac" },
+  { col:5, topPx:435, hPx:60,  name:"Yvonne F.",         service:"Skin Booster 1ml",    time:"16:15–17:15", color:"#f87171" },
+  { col:5, topPx:510, hPx:30,  name:"Quick lash",        service:"Lash Lift",           time:"17:30–18:00", color:"#0f766e" },
+  // Column 6 – Josie Kelly (teal)
+  { col:6, topPx:30,  hPx:60,  name:"Aine B.",           service:"Manicure",            time:"09:30–10:30", color:"#db2777" },
+  { col:6, topPx:105, hPx:30,  name:"Quick paint",       service:"Manicure top-up",     time:"10:45–11:15", color:"#db2777" },
+  { col:6, topPx:150, hPx:60,  name:"Break",             service:"",                    time:"11:30–12:30", color:"#374151" },
+  { col:6, topPx:225, hPx:45,  name:"Orla F.",           service:"Video Consult",       time:"12:45–13:30", color:"#065f46" },
+  { col:6, topPx:285, hPx:75,  name:"Una P.",            service:"Pedicure",            time:"13:45–15:00", color:"#db2777" },
+  { col:6, topPx:375, hPx:30,  name:"Ciara T.",          service:"IPL Underarm",        time:"15:15–15:45", color:"#4ade80" },
+  { col:6, topPx:420, hPx:60,  name:"Niamh G.",          service:"Gel Manicure",        time:"16:00–17:00", color:"#db2777" },
+  { col:6, topPx:495, hPx:45,  name:"Late client",       service:"Brow Tint",           time:"17:15–18:00", color:"#4ade80" },
+];
+
+// ─── BUILD CALENDAR ───────────────────────────────────────────────────────
+function buildCalendar() {
+  const wrap = document.getElementById("calWrap");
+  wrap.innerHTML = "";
+  const totalSlots = HOURS.length * 4; // 44 slots of 15min
+  const totalMinutes = HOURS.length * 60;
+
+  // time column
+  const timeCol = document.createElement("div");
+  timeCol.className = "time-col";
+  timeCol.innerHTML = `<div class="spacer"></div><div class="hours">${
+    HOURS.map(h => `<div class="hour"><span class="hour-label">${String(h).padStart(2,"0")}:00</span></div>`).join("")
+  }</div>`;
+  wrap.appendChild(timeCol);
+
+  // staff columns
+  STAFF.forEach((s, ci) => {
+    const col = document.createElement("div");
+    col.className = "staff-col";
+
+    const header = document.createElement("div");
+    header.className = "staff-header";
+    header.style.background = s.bg;
+    header.innerHTML = `<div class="avatar">${s.initials}</div><div class="name">${s.name}</div>`;
+    col.appendChild(header);
+
+    const slots = document.createElement("div");
+    slots.className = "slots";
+    for (let i = 0; i < totalSlots; i++) {
+      const slot = document.createElement("div");
+      slot.className = "slot " + (i % 2 === 0 ? "even" : "odd");
+      slots.appendChild(slot);
+    }
+    APPTS.filter(a => a.col === ci).forEach(a => {
+      const topPct = (a.topPx / totalMinutes) * 100;
+      const hPct = (a.hPx / totalMinutes) * 100;
+      const card = document.createElement("div");
+      const needsDark = needsDarkText(a.color);
+      card.className = "appt" + (needsDark ? " dark-text" : "") + (a._new ? " is-new" : "");
+      card.style.cssText = `top:${topPct}%; height:${hPct}%; background:${a.color}`;
+      card.innerHTML = `<div class="n">${a.name}</div><div class="s">${a.service}</div>${a.time ? `<div class="t">${a.time}</div>` : ""}`;
+      slots.appendChild(card);
+    });
+    col.appendChild(slots);
+    wrap.appendChild(col);
+  });
+}
+
+// ─── CLIENT LIST ──────────────────────────────────────────────────────────
+function buildClientList() {
+  const initials = name => name.split(" ").map(w => w[0]).join("").slice(0,2).toUpperCase();
+  const rowHTML = (c, group, idx) => `
+    <div class="client-row" onclick="pickClient('${group}', ${idx})">
+      <div class="avatar">
+        ${initials(c.name)}
+        <img src="${c.img}" alt="" onerror="this.remove()" />
+      </div>
+      <div class="info">
+        <div class="n">${c.name}${c.verified ? " ✅" : ""}</div>
+        ${c.phone ? `<div class="p">${c.phone}</div>` : ""}
+        <div class="e">${c.email}</div>
+      </div>
+    </div>`;
+  document.getElementById("clientsRecent").innerHTML =
+    CLIENTS_RECENT.map((c, i) => rowHTML(c, "recent", i)).join("");
+
+  // Group CLIENTS_ALL by first letter and render with section headers
+  const groups = {};
+  CLIENTS_ALL.forEach((c, i) => {
+    const letter = c.name[0].toUpperCase();
+    if (!groups[letter]) groups[letter] = [];
+    groups[letter].push({ c, i });
+  });
+  let html = "";
+  Object.keys(groups).sort().forEach(letter => {
+    html += `<div class="section-label alpha">${letter}</div>`;
+    groups[letter].forEach(({ c, i }) => { html += rowHTML(c, "alpha", i); });
+  });
+  document.getElementById("clientsAlpha").innerHTML = html;
+}
+
+// ─── APPOINTMENT PLANNER FLOW ─────────────────────────────────────────────
+const plannerState = {
+  view: null,           // 'client' | 'service' | 'main'
+  client: null,
+  services: [],         // { name, color, duration, price, staffIdx }
+  catIdx: null,         // open category in service picker
+  staffFilter: null,    // staffIdx pre-selected from the dropdown, or null for any
+  subView: 'date',      // 'date' | 'time'
+  selectedDate: null,   // {y, m, d}
+  viewMonth: { y: 2026, m: 4 }, // May 2026 (0-indexed month)
+};
+const TODAY = { y: 2026, m: 4, d: 6 };
+
+function openPlanner() {
+  plannerState.view = 'client';
+  plannerState.client = null;
+  plannerState.services = [];
+  plannerState.subView = 'date';
+  plannerState.selectedDate = null;
+  plannerState.catIdx = null;
+  hideAllPlanner();
+  document.getElementById('plannerClient').classList.add('show');
+}
+function plannerClose() {
+  hideAllPlanner();
+  plannerState.view = null;
+}
+function hideAllPlanner() {
+  ['plannerClient','plannerService','plannerMain'].forEach(id => {
+    document.getElementById(id).classList.remove('show');
+  });
+}
+function plannerBack(from) {
+  if (from === 'service') {
+    if (plannerState.catIdx !== null) { backToCategories(); return; }
+    document.getElementById('plannerService').classList.remove('show');
+    // If services already chosen, go back to main; else back to client picker
+    if (plannerState.services.length > 0) {
+      document.getElementById('plannerMain').classList.add('show');
+      plannerState.view = 'main';
+      renderPlannerMain();
+    } else {
+      plannerState.view = 'client';
+      document.getElementById('plannerClient').classList.add('show');
+    }
+  } else if (from === 'main') {
+    document.getElementById('plannerMain').classList.remove('show');
+    plannerState.view = 'service';
+    document.getElementById('plannerService').classList.add('show');
+    showCategories();
+  }
+}
+
+function pickClient(group, idx) {
+  const c = group === 'recent' ? CLIENTS_RECENT[idx] : CLIENTS_ALL[idx];
+  plannerState.client = c;
+  plannerState.view = 'service';
+  document.getElementById('plannerClient').classList.remove('show');
+  document.getElementById('plannerService').classList.add('show');
+  showCategories();
+}
+
+// Service picker — categories first, then services
+function showCategories() {
+  plannerState.catIdx = null;
+  document.getElementById('catView').classList.remove('hidden');
+  document.getElementById('svcView').classList.add('hidden');
+  document.getElementById('serviceSlideTitle').textContent = 'Select category';
+  document.getElementById('catView').innerHTML = SERVICE_CATEGORIES.map((c, i) => `
+    <div class="cat-row" onclick="openCategory(${i})">
+      <div class="av" style="background:${c.bg}">${c.abbr}</div>
+      <div class="n">${c.cat}</div>
+    </div>`).join('');
+}
+function openCategory(i) {
+  plannerState.catIdx = i;
+  const cat = SERVICE_CATEGORIES[i];
+  document.getElementById('catView').classList.add('hidden');
+  document.getElementById('svcView').classList.remove('hidden');
+  document.getElementById('serviceSlideTitle').textContent = cat.cat;
+  const svcInitials = name => {
+    const parts = name.split(/\s+/).filter(Boolean);
+    if (parts.length === 1) return parts[0].slice(0,2).toUpperCase();
+    return (parts[0][0] + parts[parts.length-1][0]).toUpperCase();
+  };
+  document.getElementById('svcList').innerHTML = cat.items.map((s, si) => `
+    <div class="svc-item" onclick="pickService(${i}, ${si})">
+      <div class="av" style="background:${s.color}">${svcInitials(s.name)}</div>
+      <div class="info">
+        <div class="n">${s.name}</div>
+        <div class="meta">
+          <span class="meta-item">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.25" y="6" width="19.5" height="12.75" rx="1.5"/><path d="M2.25 10.5h19.5"/><path d="M6.75 15.75h2.25"/></svg>
+            €${s.price.toFixed(2)}
+          </span>
+          <span class="meta-item">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 1.5"/></svg>
+            ${s.duration}min
+          </span>
+        </div>
+      </div>
+    </div>`).join('');
+}
+function backToCategories() {
+  showCategories();
+}
+function pickService(catIdx, itemIdx) {
+  const item = SERVICE_CATEGORIES[catIdx].items[itemIdx];
+  // Default staff: previous service's staff > dropdown filter > column 0
+  let staffIdx;
+  if (plannerState.services.length) {
+    staffIdx = plannerState.services[plannerState.services.length-1].staffIdx;
+  } else if (plannerState.staffFilter !== null) {
+    staffIdx = plannerState.staffFilter;
+  } else {
+    staffIdx = 0;
+  }
+  plannerState.services.push({ ...item, staffIdx });
+  document.getElementById('plannerService').classList.remove('show');
+  document.getElementById('plannerMain').classList.add('show');
+  plannerState.view = 'main';
+  renderPlannerMain();
+}
+
+// Creating Appointments view
+function renderPlannerMain() {
+  const c = plannerState.client;
+  const initials = name => name.split(" ").map(w => w[0]).join("").slice(0,2).toUpperCase();
+  const body = document.getElementById('plannerMainBody');
+  body.innerHTML = `
+    <div class="panel">
+      <div class="client-card">
+        <div class="av">
+          ${initials(c.name)}
+          <img src="${c.img}" alt="" onerror="this.remove()" />
+        </div>
+        <div>
+          <div class="n">${c.name}</div>
+          ${c.phone ? `<div class="p">${c.phone}</div>` : ''}
+          <div class="e">${c.email}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-h">Services</div>
+      <div id="plannerServiceList"></div>
+      <div class="add-svc-row">
+        <button class="btn btn-secondary btn-sm" onclick="plannerAddService()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.5v15m7.5-7.5h-15"/></svg>
+          Add another service
+        </button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-h">Availability</div>
+      <div id="plannerAvail"></div>
+    </div>
+  `;
+  renderPlannerServiceList();
+  renderPlannerAvailability();
+}
+
+function renderPlannerServiceList() {
+  const list = document.getElementById('plannerServiceList');
+  if (!list) return;
+  list.innerHTML = plannerState.services.map((s, i) => {
+    const staff = STAFF[s.staffIdx];
+    return `
+      <div class="planner-svc">
+        <div class="bar" style="background:${s.color}"></div>
+        <div class="body">
+          <div class="row1">
+            <span class="n">${s.name}</span>
+            <span class="with">with ${staff.name}</span>
+          </div>
+          <div class="pills">
+            <span class="p-pill">${s.duration} min</span>
+            <span class="p-pill">€${s.price}</span>
+          </div>
+        </div>
+        <button class="rm" aria-label="Remove" onclick="removePlannerService(${i})">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 18 18 6M6 6l12 12"/></svg>
+        </button>
+      </div>`;
+  }).join('');
+}
+function removePlannerService(i) {
+  plannerState.services.splice(i, 1);
+  if (plannerState.services.length === 0) {
+    // Bounce back to service picker
+    document.getElementById('plannerMain').classList.remove('show');
+    document.getElementById('plannerService').classList.add('show');
+    plannerState.view = 'service';
+    showCategories();
+    return;
+  }
+  renderPlannerServiceList();
+}
+function plannerAddService() {
+  document.getElementById('plannerMain').classList.remove('show');
+  document.getElementById('plannerService').classList.add('show');
+  plannerState.view = 'service';
+  showCategories();
+}
+
+// Availability: date picker → time grid
+function renderPlannerAvailability() {
+  const el = document.getElementById('plannerAvail');
+  if (!el) return;
+  if (plannerState.subView === 'date') {
+    el.innerHTML = renderMiniCalendar();
+  } else {
+    el.innerHTML = renderTimeGrid();
+  }
+}
+
+function renderMiniCalendar() {
+  const { y, m } = plannerState.viewMonth;
+  const monthName = new Date(y, m, 1).toLocaleString('en-US', { month: 'long', year: 'numeric' });
+  const first = new Date(y, m, 1);
+  const startOffset = (first.getDay() + 6) % 7; // Mon-first
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+
+  // Available dates: weekdays from "today" onwards, with a couple disabled at random
+  const todayDt = new Date(TODAY.y, TODAY.m, TODAY.d);
+  const isAvailable = (yy, mm, dd) => {
+    const dt = new Date(yy, mm, dd);
+    if (dt < todayDt) return false;
+    const dow = dt.getDay();
+    if (dow === 0 || dow === 6) return false;
+    if (yy === 2026 && mm === 4 && (dd === 11 || dd === 19)) return false;
+    return true;
+  };
+
+  let cells = '';
+  for (let i = 0; i < startOffset; i++) cells += `<div></div>`;
+  for (let d = 1; d <= daysInMonth; d++) {
+    const isToday = (y === TODAY.y && m === TODAY.m && d === TODAY.d);
+    const avail = isAvailable(y, m, d);
+    const sel = plannerState.selectedDate && plannerState.selectedDate.y === y && plannerState.selectedDate.m === m && plannerState.selectedDate.d === d;
+    const cls = ['mini-day'];
+    if (avail) cls.push('available');
+    if (isToday) cls.push('today');
+    if (sel) cls.push('selected');
+    cells += `<button class="${cls.join(' ')}" ${avail ? `onclick="pickDate(${y},${m},${d})"` : 'disabled'}>${d}</button>`;
+  }
+
+  return `
+    <div class="mini-cal-head">
+      <div class="mini-cal-title">${monthName}</div>
+      <div class="mini-cal-nav">
+        <button onclick="navMonth(-1)" aria-label="Previous month">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15.75 19.5 8.25 12l7.5-7.5"/></svg>
+        </button>
+        <button onclick="navMonth(1)" aria-label="Next month">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="mini-dow"><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div><div>Sun</div></div>
+    <div class="mini-days">${cells}</div>`;
+}
+
+function navMonth(delta) {
+  const v = plannerState.viewMonth;
+  v.m += delta;
+  if (v.m < 0) { v.m = 11; v.y--; }
+  if (v.m > 11) { v.m = 0; v.y++; }
+  renderPlannerAvailability();
+}
+
+function pickDate(y, m, d) {
+  plannerState.selectedDate = { y, m, d };
+  plannerState.subView = 'time';
+  renderPlannerAvailability();
+}
+
+function renderTimeGrid() {
+  const slots = [];
+  for (let h = 9; h <= 17; h++) {
+    for (const mm of [0, 30]) {
+      slots.push({ h, m: mm });
+    }
+  }
+  const unavailable = new Set(['11:00','13:30','15:00','15:30']);
+  const dateLabel = formatDateLong(plannerState.selectedDate);
+  return `
+    <div class="avail-head">
+      <button class="avail-back" aria-label="Back to date" onclick="backToDate()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15.75 19.5 8.25 12l7.5-7.5"/></svg>
+      </button>
+      <div class="avail-date">${dateLabel}</div>
+    </div>
+    <div class="time-grid">
+      ${slots.map(s => {
+        const key = `${String(s.h).padStart(2,'0')}:${String(s.m).padStart(2,'0')}`;
+        const disabled = unavailable.has(key);
+        const display = formatTime12(s.h, s.m);
+        return `<button class="time-slot${disabled ? ' disabled' : ''}" ${disabled ? 'disabled' : `onclick="pickTime(${s.h},${s.m})"`}>${display}</button>`;
+      }).join('')}
+    </div>`;
+}
+
+function backToDate() {
+  plannerState.subView = 'date';
+  renderPlannerAvailability();
+}
+
+function pickTime(h, m) {
+  // Only book on today's calendar if the selected date is today; otherwise show a toast.
+  const sd = plannerState.selectedDate;
+  const isToday = sd && sd.y === TODAY.y && sd.m === TODAY.m && sd.d === TODAY.d;
+  const clientName = shortName(plannerState.client.name);
+  let cursor = h * 60 + m - 9 * 60; // minutes after 9:00
+  const newAppts = [];
+  for (const svc of plannerState.services) {
+    const startH = Math.floor((cursor + 9 * 60) / 60);
+    const startM = (cursor + 9 * 60) % 60;
+    const endH = Math.floor((cursor + 9 * 60 + svc.duration) / 60);
+    const endM = (cursor + 9 * 60 + svc.duration) % 60;
+    newAppts.push({
+      col: svc.staffIdx,
+      topPx: cursor,
+      hPx: svc.duration,
+      name: clientName,
+      service: svc.name,
+      time: `${pad2(startH)}:${pad2(startM)}–${pad2(endH)}:${pad2(endM)}`,
+      color: svc.color,
+      _new: true,
+    });
+    cursor += svc.duration;
+  }
+
+  if (isToday) {
+    APPTS.forEach(a => delete a._new);
+    APPTS.push(...newAppts);
+    buildCalendar();
+    showToast(`Booked ${newAppts.length} appointment${newAppts.length > 1 ? 's' : ''} for ${clientName}`);
+  } else {
+    const dl = formatDateLong(sd);
+    showToast(`Booked ${newAppts.length} appointment${newAppts.length > 1 ? 's' : ''} on ${dl}`);
+  }
+  plannerClose();
+}
+
+// ─── HELPERS ──────────────────────────────────────────────────────────────
+// WCAG AA contrast check — returns true when black text gives better contrast than white.
+function needsDarkText(bgHex) {
+  const hex = bgHex.replace('#','');
+  const r = parseInt(hex.slice(0,2),16)/255;
+  const g = parseInt(hex.slice(2,4),16)/255;
+  const b = parseInt(hex.slice(4,6),16)/255;
+  const toLin = c => c <= 0.03928 ? c/12.92 : Math.pow((c+0.055)/1.055, 2.4);
+  const L = 0.2126*toLin(r) + 0.7152*toLin(g) + 0.0722*toLin(b);
+  // White-on-bg contrast must be >= 4.5 (AA normal text). If not, switch to black.
+  return (1.05 / (L + 0.05)) < 4.5;
+}
+function pad2(n) { return String(n).padStart(2, '0'); }
+function shortName(full) {
+  const parts = full.split(' ');
+  if (parts.length === 1) return full;
+  return `${parts[0]} ${parts[parts.length-1][0]}.`;
+}
+function formatTime12(h, m) {
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const hh = h > 12 ? h - 12 : (h === 0 ? 12 : h);
+  return `${hh}:${pad2(m)} ${ampm}`;
+}
+function formatDateLong({ y, m, d }) {
+  return new Date(y, m, d).toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+}
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._h);
+  t._h = setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────
+buildCalendar();
+buildClientList();
+buildStaffFilter();
+
+function buildStaffFilter() {
+  const wrap = document.getElementById('staffSelectWrap');
+  const trigger = document.getElementById('staffTrigger');
+  const menu = document.getElementById('staffMenu');
+  if (!wrap || !trigger || !menu) return;
+
+  const staffInitials = name => name.split(/\s+/).filter(Boolean).map(p => p[0]).slice(0,2).join('').toUpperCase();
+
+  // Build options: "Any staff member" + each STAFF row
+  const anyOpt = `
+    <button type="button" class="staff-option is-any" role="option" data-idx="">
+      <span class="av" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/></svg>
+      </span>
+      <span>
+        <span class="name" style="display:block">Any staff member</span>
+        <span class="role">All rostered staff</span>
+      </span>
+    </button>`;
+  const staffOpts = STAFF.map((s, idx) => `
+    <button type="button" class="staff-option" role="option" data-idx="${idx}">
+      <span class="av" style="background:${s.bg}" aria-hidden="true">${staffInitials(s.name)}</span>
+      <span>
+        <span class="name" style="display:block">${s.name}</span>
+        <span class="role">${s.role}</span>
+      </span>
+    </button>`).join('');
+  menu.innerHTML = anyOpt + staffOpts;
+
+  const setSelected = idx => {
+    const av = document.getElementById('staffTriggerAv');
+    const text = document.getElementById('staffTriggerText');
+    if (idx === null) {
+      plannerState.staffFilter = null;
+      av.style.background = '#9ca3af';
+      av.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/></svg>';
+      text.innerHTML = '<span class="placeholder">Any staff member</span>';
+    } else {
+      const s = STAFF[idx];
+      plannerState.staffFilter = idx;
+      av.style.background = s.bg;
+      av.textContent = staffInitials(s.name);
+      text.innerHTML = `<span class="name">${s.name}</span><span class="role">${s.role}</span>`;
+    }
+  };
+
+  const closeMenu = () => {
+    menu.hidden = true;
+    wrap.classList.remove('open');
+    trigger.setAttribute('aria-expanded', 'false');
+  };
+  const openMenu = () => {
+    menu.hidden = false;
+    wrap.classList.add('open');
+    trigger.setAttribute('aria-expanded', 'true');
+  };
+  trigger.addEventListener('click', e => {
+    e.stopPropagation();
+    menu.hidden ? openMenu() : closeMenu();
+  });
+  menu.addEventListener('click', e => {
+    const opt = e.target.closest('.staff-option');
+    if (!opt) return;
+    const v = opt.dataset.idx;
+    setSelected(v === '' ? null : parseInt(v, 10));
+    closeMenu();
+  });
+  document.addEventListener('click', e => {
+    if (!wrap.contains(e.target)) closeMenu();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && !menu.hidden) closeMenu();
+  });
+}
+</script>
+</body>
+</html>
