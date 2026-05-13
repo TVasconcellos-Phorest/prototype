@@ -83,6 +83,38 @@
   .appt.dark-text .s { color: rgba(0,0,0,0.78); }
   .appt.dark-text .t { color: rgba(0,0,0,0.65); }
 
+  /* ───── Appointment History ────────────────────────────────────────── */
+  /* Background matches Creating appointment slideover for consistency. */
+  #plannerHistoryBody { background: #ECEEF1; }
+  .hist-tabs { display: flex; gap: 6px; padding: 12px; background: #ECEEF1; border-bottom: 1px solid #d1d5db; flex-shrink: 0; }
+  .hist-tab { flex: 1; font-family: 'Inter',sans-serif; font-size: 13px; font-weight: 600; border-radius: 4px; padding: 0 12px; height: 40px; cursor: pointer; border: 1px solid #d1d5db; background: transparent; color: #6b7280; }
+  .hist-tab:hover { background: rgba(255,255,255,0.5); }
+  .hist-tab.is-active { background: #fff; color: #111827; border-color: #000; }
+
+  /* Date group with the "Rebook all" affordance */
+  .hist-group { padding: 12px; border-bottom: 1px solid #d1d5db; }
+  .hist-group:last-child { border-bottom: none; }
+  .hist-group-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+  .hist-group-title { font-size: 14px; font-weight: 600; color: #111827; text-decoration: underline; text-underline-offset: 2px; }
+  .hist-group-when { font-size: 12px; color: #6b7280; margin-top: 2px; }
+  .hist-group-actions { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+  .hist-kebab { width: 40px; height: 40px; border-radius: 4px; border: 1px solid #000; border-bottom-width: 2px; background: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #000; padding: 0; }
+  .hist-kebab:hover { background: #e5e7eb; }
+
+  /* Card stack — one outer card per date group, with appointment rows separated by a hairline */
+  .hist-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 6px; overflow: hidden; }
+  .hist-appt { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 14px 16px; }
+  .hist-appt + .hist-appt { border-top: 1px solid #f3f4f6; }
+  .hist-appt-body { flex: 1; min-width: 0; }
+  .hist-appt .svc { font-size: 14px; font-weight: 700; color: #111827; }
+  .hist-appt .with { font-size: 13px; color: #4b5563; margin-top: 2px; }
+  .hist-appt .meta { display: flex; align-items: center; gap: 14px; margin-top: 8px; }
+  .hist-appt .meta-item { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #6b7280; }
+  .hist-appt .meta-item svg { flex-shrink: 0; }
+
+  .hist-footer { padding: 12px; border-top: 1px solid #e5e7eb; flex-shrink: 0; background: #fff; }
+  .hist-empty { padding: 40px 24px; text-align: center; color: #6b7280; font-size: 14px; }
+
   /* Ghost availability slots — clickable overlays shown on the calendar
      while the planner is open and the user is choosing a time. */
   .ghost-slot { position: absolute; left: 3px; right: 3px; border: 1.5px dashed #2563EB; background: rgba(37,99,235,0.10); border-radius: 4px; cursor: pointer; padding: 3px 6px; display: flex; align-items: center; justify-content: center; transition: background 120ms ease, transform 120ms ease; z-index: 5; }
@@ -93,6 +125,8 @@
   .right-rail { width: 56px; flex-shrink: 0; background: #f9fafb; border-left: 1px solid #e5e7eb; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding: 12px 0; gap: 8px; }
   /* Right rail is irrelevant while planning — hide it to free space for calendar + slideover. */
   .body-row.planner-open .right-rail { display: none; }
+  /* Footer also hidden while planning — the slideover provides primary actions. */
+  .main.planner-open .footer { display: none; }
   .rail-btn { width: 40px; height: 40px; border-radius: 4px; border: 1px solid #000; border-bottom-width: 2px; background: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; color: #000; }
   .rail-btn:hover { background: #e5e7eb; }
   .rail-btn svg { display: block; }
@@ -181,9 +215,9 @@
   .svc-item .meta-item svg { flex-shrink: 0; }
 
   /* ───── Planner main (Creating Appointments) ───────────────────────── */
-  #plannerMainBody { background: #e5e7eb; }
-  .panel { border: 1px solid #d1d5db; border-radius: 6px; background: white; margin: 0 16px 12px; padding: 12px; }
-  .panel:first-child { margin-top: 12px; }
+  #plannerMainBody { background: #ECEEF1; padding: 12px; }
+  .panel { border: 1px solid #d1d5db; border-radius: 6px; background: white; margin: 0 0 12px; padding: 12px; }
+  .panel:last-child { margin-bottom: 0; }
   .panel-h { font-size: 14px; font-weight: 600; margin-bottom: 10px; }
   .client-card { display: flex; align-items: center; gap: 12px; padding: 0; }
   .client-card .av { width: 44px; height: 44px; border-radius: 50%; background: #9ca3af; color: white; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 600; flex-shrink: 0; overflow: hidden; position: relative; }
@@ -436,6 +470,34 @@
         </div>
       </div>
 
+      <!-- ─── PLANNER STEP 1.5: Appointment History ────────────────── -->
+      <div id="plannerHistory" class="slideover-bg">
+        <div class="slideover">
+          <div class="slideover-header">
+            <div class="h-left">
+              <button class="icon-btn" aria-label="Back" onclick="plannerBack('history')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15.75 19.5 8.25 12l7.5-7.5"/></svg>
+              </button>
+              <div class="title">Appointment history</div>
+            </div>
+            <button class="icon-btn" aria-label="Close" onclick="plannerClose()">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 18 18 6M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <div class="hist-tabs">
+            <button type="button" class="hist-tab is-active" id="histTabPast" onclick="setHistoryTab('past')">Past appointments</button>
+            <button type="button" class="hist-tab" id="histTabFuture" onclick="setHistoryTab('future')">Future appointments</button>
+          </div>
+          <div class="slideover-body" id="plannerHistoryBody"></div>
+          <div class="hist-footer">
+            <button class="btn btn-primary" style="width:100%" onclick="addNewServiceFromHistory()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5v15m7.5-7.5h-15"/></svg>
+              Add new service
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- ─── PLANNER STEP 2: Select Service ──────────────────────── -->
       <div id="plannerService" class="slideover-bg">
         <div class="slideover">
@@ -631,6 +693,40 @@ const SERVICE_CATEGORIES = [
 const HOURS = [9,10,11,12,13,14,15,16,17,18,19];
 // In this layout 1px == 1 minute past 9:00. topPx=0 → 09:00, topPx=120 → 11:00, etc.
 
+// Mock appointment history shown after picking a client. In a real implementation
+// this would be keyed by client ID; for the prototype we show the same history
+// for every client. Services reference STAFF by index so "rebook" inherits the
+// previous staff member. Each service entry mirrors the shape used by
+// plannerState.services so rebook is a direct copy.
+const APPT_HISTORY = {
+  past: [
+    {
+      date: "Tuesday 24 March 2026",
+      relative: "7 weeks ago",
+      services: [
+        { name: "Full Head Colour", duration: 90, price: 95,  color: "#e07b6a", staffIdx: 0, startTime: "10:00" },
+        { name: "Toner",            duration: 30, price: 40,  color: "#6ee7b7", staffIdx: 2, startTime: "11:30" },
+      ],
+    },
+    {
+      date: "Tuesday 10 February 2026",
+      relative: "13 weeks ago",
+      services: [
+        { name: "Lip Filler 1ml",   duration: 45, price: 350, color: "#c084fc", staffIdx: 4, startTime: "10:35" },
+        { name: "Wrinkle Relaxer",  duration: 30, price: 200, color: "#86efac", staffIdx: 4, startTime: "14:15" },
+      ],
+    },
+    {
+      date: "Friday 5 December 2025",
+      relative: "23 weeks ago",
+      services: [
+        { name: "Ladies' Cut",      duration: 45, price: 45,  color: "#4c1d95", staffIdx: 1, startTime: "11:00" },
+      ],
+    },
+  ],
+  future: [],
+};
+
 const APPTS = [
   // Column 0 – Aoife Brennan (purple)
   { col:0, topPx:0,   hPx:60,  name:"Sarah M.",          service:"Cut & Blowdry",       time:"09:00–10:00", color:"#4c1d95" },
@@ -778,7 +874,7 @@ function buildClientList() {
 
 // ─── APPOINTMENT PLANNER FLOW ─────────────────────────────────────────────
 const plannerState = {
-  view: null,           // 'client' | 'service' | 'main'
+  view: null,           // 'client' | 'history' | 'service' | 'main'
   client: null,
   services: [],         // { name, color, duration, price, staffIdx }
   catIdx: null,         // open category in service picker
@@ -786,6 +882,8 @@ const plannerState = {
   subView: 'date',      // 'date' | 'time'
   selectedDate: null,   // {y, m, d}
   viewMonth: { y: 2026, m: 4 }, // May 2026 (0-indexed month)
+  historyTab: 'past',   // 'past' | 'future'
+  mainCameFrom: null,   // 'service' | 'history' — used by plannerBack('main') to route back correctly
 };
 const TODAY = { y: 2026, m: 4, d: 6 };
 
@@ -796,18 +894,22 @@ function openPlanner() {
   plannerState.subView = 'date';
   plannerState.selectedDate = null;
   plannerState.catIdx = null;
+  plannerState.historyTab = 'past';
+  plannerState.mainCameFrom = null;
   hideAllPlanner();
   document.getElementById('plannerClient').classList.add('show');
   document.querySelector('.body-row').classList.add('planner-open');
+  document.querySelector('.main').classList.add('planner-open');
 }
 function plannerClose() {
   hideAllPlanner();
   plannerState.view = null;
   clearCalendarGhosts();
   document.querySelector('.body-row').classList.remove('planner-open');
+  document.querySelector('.main').classList.remove('planner-open');
 }
 function hideAllPlanner() {
-  ['plannerClient','plannerService','plannerMain'].forEach(id => {
+  ['plannerClient','plannerHistory','plannerService','plannerMain'].forEach(id => {
     document.getElementById(id).classList.remove('show');
   });
 }
@@ -815,30 +917,151 @@ function plannerBack(from) {
   if (from === 'service') {
     if (plannerState.catIdx !== null) { backToCategories(); return; }
     document.getElementById('plannerService').classList.remove('show');
-    // If services already chosen, go back to main; else back to client picker
+    // If services already chosen, go back to main; otherwise back to history
+    // (or client picker if there's no client — defensive only).
     if (plannerState.services.length > 0) {
       document.getElementById('plannerMain').classList.add('show');
       plannerState.view = 'main';
       renderPlannerMain();
+    } else if (plannerState.client) {
+      plannerState.view = 'history';
+      document.getElementById('plannerHistory').classList.add('show');
+      renderAppointmentHistory();
     } else {
       plannerState.view = 'client';
       document.getElementById('plannerClient').classList.add('show');
     }
   } else if (from === 'main') {
     document.getElementById('plannerMain').classList.remove('show');
-    plannerState.view = 'service';
-    document.getElementById('plannerService').classList.add('show');
-    showCategories();
+    // Route back to wherever the user came from to land at main.
+    if (plannerState.mainCameFrom === 'history') {
+      plannerState.view = 'history';
+      document.getElementById('plannerHistory').classList.add('show');
+      renderAppointmentHistory();
+    } else {
+      plannerState.view = 'service';
+      document.getElementById('plannerService').classList.add('show');
+      showCategories();
+    }
+  } else if (from === 'history') {
+    document.getElementById('plannerHistory').classList.remove('show');
+    plannerState.view = 'client';
+    document.getElementById('plannerClient').classList.add('show');
   }
 }
 
 function pickClient(group, idx) {
   const c = group === 'recent' ? CLIENTS_RECENT[idx] : CLIENTS_ALL[idx];
   plannerState.client = c;
-  plannerState.view = 'service';
+  plannerState.view = 'history';
+  plannerState.historyTab = 'past';
   document.getElementById('plannerClient').classList.remove('show');
+  document.getElementById('plannerHistory').classList.add('show');
+  renderAppointmentHistory();
+}
+
+// Appointment History — shown after client selection. Past appointments
+// surface rebook actions; "Add new service" routes to the original service
+// picker flow.
+function setHistoryTab(tab) {
+  plannerState.historyTab = tab;
+  document.getElementById('histTabPast').classList.toggle('is-active', tab === 'past');
+  document.getElementById('histTabFuture').classList.toggle('is-active', tab === 'future');
+  renderAppointmentHistory();
+}
+
+function renderAppointmentHistory() {
+  const body = document.getElementById('plannerHistoryBody');
+  if (!body) return;
+  const groups = APPT_HISTORY[plannerState.historyTab] || [];
+
+  if (!groups.length) {
+    const label = plannerState.historyTab === 'future' ? 'No upcoming appointments.' : 'No past appointments yet.';
+    body.innerHTML = `<div class="hist-empty">${label}</div>`;
+    return;
+  }
+
+  body.innerHTML = groups.map((g, gi) => {
+    const showRebookAll = plannerState.historyTab === 'past';
+    return `
+      <div class="hist-group">
+        <div class="hist-group-head">
+          <div>
+            <div class="hist-group-title">${g.date}</div>
+            <div class="hist-group-when">${g.relative}</div>
+          </div>
+          ${showRebookAll ? `
+            <div class="hist-group-actions">
+              <button class="btn btn-primary btn-sm" onclick="rebookAll(${gi})">Rebook all</button>
+              <button class="hist-kebab" aria-label="More actions" onclick="event.stopPropagation()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+              </button>
+            </div>` : ''}
+        </div>
+        <div class="hist-card">
+          ${g.services.map((s, si) => {
+            const staff = STAFF[s.staffIdx];
+            return `
+              <div class="hist-appt">
+                <div class="hist-appt-body">
+                  <div class="svc">${s.name}</div>
+                  <div class="with">with ${staff.name}</div>
+                  <div class="meta">
+                    <span class="meta-item">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 1.5"/></svg>
+                      ${s.startTime}
+                    </span>
+                    <span class="meta-item">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.25" y="6" width="19.5" height="12.75" rx="1.5"/><path d="M2.25 10.5h19.5"/><path d="M6.75 15.75h2.25"/></svg>
+                      €${s.price.toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              </div>`;
+          }).join('')}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function rebookAll(groupIdx) {
+  const group = APPT_HISTORY[plannerState.historyTab][groupIdx];
+  if (!group) return;
+  // Copy the services in order — preserve staff assignments from history.
+  plannerState.services = group.services.map(s => ({
+    name: s.name, duration: s.duration, price: s.price, color: s.color, staffIdx: s.staffIdx,
+  }));
+  jumpToPlannerMain();
+}
+
+function rebookOne(groupIdx, itemIdx) {
+  const group = APPT_HISTORY[plannerState.historyTab][groupIdx];
+  if (!group) return;
+  const s = group.services[itemIdx];
+  if (!s) return;
+  plannerState.services = [{
+    name: s.name, duration: s.duration, price: s.price, color: s.color, staffIdx: s.staffIdx,
+  }];
+  jumpToPlannerMain();
+}
+
+function addNewServiceFromHistory() {
+  // Existing flow — leave services empty, go to category picker
+  document.getElementById('plannerHistory').classList.remove('show');
   document.getElementById('plannerService').classList.add('show');
+  plannerState.view = 'service';
   showCategories();
+}
+
+function jumpToPlannerMain() {
+  document.getElementById('plannerHistory').classList.remove('show');
+  document.getElementById('plannerMain').classList.add('show');
+  plannerState.view = 'main';
+  plannerState.mainCameFrom = 'history';
+  // Reset availability sub-view so the user starts on the date picker.
+  plannerState.subView = 'date';
+  plannerState.selectedDate = null;
+  renderPlannerMain();
 }
 
 // Service picker — categories first, then services
@@ -903,6 +1126,7 @@ function pickService(catIdx, itemIdx) {
   document.getElementById('plannerService').classList.remove('show');
   document.getElementById('plannerMain').classList.add('show');
   plannerState.view = 'main';
+  plannerState.mainCameFrom = 'service';
   renderPlannerMain();
 }
 
@@ -976,11 +1200,17 @@ function renderPlannerServiceList() {
 function removePlannerService(i) {
   plannerState.services.splice(i, 1);
   if (plannerState.services.length === 0) {
-    // Bounce back to service picker
+    // Bounce back to wherever the user came from — history if they rebooked, else service picker.
     document.getElementById('plannerMain').classList.remove('show');
-    document.getElementById('plannerService').classList.add('show');
-    plannerState.view = 'service';
-    showCategories();
+    if (plannerState.mainCameFrom === 'history') {
+      document.getElementById('plannerHistory').classList.add('show');
+      plannerState.view = 'history';
+      renderAppointmentHistory();
+    } else {
+      document.getElementById('plannerService').classList.add('show');
+      plannerState.view = 'service';
+      showCategories();
+    }
     return;
   }
   renderPlannerServiceList();
