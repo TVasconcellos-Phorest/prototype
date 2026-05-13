@@ -520,19 +520,19 @@
 <script>
 // ─── DATA ─────────────────────────────────────────────────────────────────
 const STAFF = [
-  { initials:"RC", name:"Rich Cullen",       role:"Senior Stylist",    bg:"#7c3aed" },
-  { initials:"RM", name:"Robert Metcalfe",   role:"Stylist",           bg:"#0369a1" },
-  { initials:"VW", name:"Verna Wall",        role:"Colourist",         bg:"#b45309" },
-  { initials:"DM", name:"Derek McAuley",     role:"Therapist (S)",     bg:"#15803d" },
-  { initials:"CM", name:"Carolina Michaels", role:"Senior Therapist",  bg:"#9f1239" },
-  { initials:"RF", name:"Rebecca Fahy",      role:"Stylist",           bg:"#1d4ed8" },
-  { initials:"JK", name:"Josie Kelly",       role:"Nail Tech",         bg:"#0f766e" },
+  { initials:"AB", name:"Aoife Brennan",     role:"Senior Stylist",    bg:"#7c3aed" },
+  { initials:"MD", name:"Marcus Donoghue",   role:"Stylist",           bg:"#0369a1" },
+  { initials:"SK", name:"Saoirse Keane",     role:"Colourist",         bg:"#b45309" },
+  { initials:"PH", name:"Padraig Hennessy",  role:"Therapist (S)",     bg:"#15803d" },
+  { initials:"NF", name:"Niamh Fitzgerald",  role:"Senior Therapist",  bg:"#9f1239" },
+  { initials:"OC", name:"Orla Crowley",      role:"Stylist",           bg:"#1d4ed8" },
+  { initials:"DT", name:"Declan Tierney",    role:"Nail Tech",         bg:"#0f766e" },
 ];
 
 const CLIENTS_RECENT = [
   { name:"Alex Morrison",     phone:"000999997635242", email:"alex-morrison-test@web.de",      img:"https://i.pravatar.cc/200?img=12" },
   { name:"Abbie Wright",      phone:"000456789876",    email:"abbie-wright@mailtest.com",       img:"https://i.pravatar.cc/200?img=47" },
-  { name:"Carole Baskin",     phone:"000987777060",    email:"carolina.soledade@phorest.com",   img:"https://i.pravatar.cc/200?img=49" },
+  { name:"Carole Baskin",     phone:"000987777060",    email:"carole.baskin@example.com",       img:"https://i.pravatar.cc/200?img=49" },
   { name:"Mary Donuts",       phone:"0891234578",      email:"donuts@gooey.ie",                 img:"https://i.pravatar.cc/200?img=20" },
   { name:"Niamh O'Sullivan",  phone:"0853459988",      email:"niamh.os@example.com",            img:"https://i.pravatar.cc/200?img=32" },
   { name:"Tom Walsh",         phone:"0879998877",      email:"tom.walsh@example.com",           img:"https://i.pravatar.cc/200?img=11" },
@@ -540,9 +540,9 @@ const CLIENTS_RECENT = [
 const CLIENTS_ALL = [
   // A
   { name:"Aaron Murphy",        phone:"0851230011", email:"aaron.m@example.com",        img:"https://i.pravatar.cc/200?img=51" },
-  { name:"Aaronasdasd Jumpo",   phone:"404040444",  email:"cillian.moloney@phorest.com",img:"https://i.pravatar.cc/200?img=15" },
+  { name:"Aaronasdasd Jumpo",   phone:"404040444",  email:"aaronasdasd.j@example.com",  img:"https://i.pravatar.cc/200?img=15" },
   { name:"Abdiel Lynch",        phone:"",           email:"camilal3@gmail.com",         img:"https://i.pravatar.cc/200?img=33", verified:true },
-  { name:"Abednego Danner",     phone:"",           email:"samuel.massari@phorest.com", img:"https://i.pravatar.cc/200?img=68" },
+  { name:"Abednego Danner",     phone:"",           email:"abednego.d@example.com",     img:"https://i.pravatar.cc/200?img=68" },
   { name:"Adelaide Cooper",     phone:"0879998877", email:"adelaide.c@example.com",     img:"https://i.pravatar.cc/200?img=5"  },
   { name:"Aisha Reyes",         phone:"0851234567", email:"aisha.r@example.com",        img:"https://i.pravatar.cc/200?img=44" },
   // B
@@ -632,7 +632,7 @@ const HOURS = [9,10,11,12,13,14,15,16,17,18,19];
 // In this layout 1px == 1 minute past 9:00. topPx=0 → 09:00, topPx=120 → 11:00, etc.
 
 const APPTS = [
-  // Column 0 – Rich Cullen (purple)
+  // Column 0 – Aoife Brennan (purple)
   { col:0, topPx:0,   hPx:60,  name:"Sarah M.",          service:"Cut & Blowdry",       time:"09:00–10:00", color:"#4c1d95" },
   { col:0, topPx:60,  hPx:30,  name:"Liam K.",           service:"Gents' Cut",          time:"10:00–10:30", color:"#4c1d95" },
   { col:0, topPx:120, hPx:120, name:"Niamh O.",          service:"Balayage",            time:"11:00–13:00", color:"#e07b6a" },
@@ -640,7 +640,7 @@ const APPTS = [
   { col:0, topPx:330, hPx:60,  name:"Paula O'Brien",     service:"Full Head Colour",    time:"14:30–15:30", color:"#e07b6a" },
   { col:0, topPx:405, hPx:45,  name:"Mary Q.",           service:"BoHo Blowdry",        time:"15:45–16:30", color:"#4c1d95" },
   { col:0, topPx:480, hPx:60,  name:"Sophie L.",         service:"Lash Lift",           time:"17:00–18:00", color:"#0f766e" },
-  // Column 1 – Robert Metcalfe (blue)
+  // Column 1 – Marcus Donoghue (blue)
   { col:1, topPx:0,   hPx:45,  name:"Tom Walsh",         service:"Gents' Cut",          time:"09:00–09:45", color:"#0369a1" },
   { col:1, topPx:60,  hPx:60,  name:"Hannah S.",         service:"Manicure",            time:"10:00–11:00", color:"#db2777" },
   { col:1, topPx:135, hPx:45,  name:"Youri Gagarin",     service:"Wrinkle Relaxer",     time:"11:15–12:00", color:"#86efac" },
@@ -649,7 +649,7 @@ const APPTS = [
   { col:1, topPx:330, hPx:60,  name:"Fiona O'Sullivan",  service:"Micro blading",       time:"14:30–15:30", color:"#f87171" },
   { col:1, topPx:420, hPx:60,  name:"Anna D.",           service:"Skin Booster 1ml",    time:"16:00–17:00", color:"#f87171" },
   { col:1, topPx:510, hPx:45,  name:"Youri G.",          service:"Fringe Trim",         time:"17:30–18:15", color:"#4c1d95" },
-  // Column 2 – Verna Wall (amber)
+  // Column 2 – Saoirse Keane (amber)
   { col:2, topPx:30,  hPx:45,  name:"German Fútbol Team",service:"Skin Booster 1ml",    time:"09:30–10:15", color:"#f87171" },
   { col:2, topPx:90,  hPx:30,  name:"Una P.",            service:"Toner",               time:"10:30–11:00", color:"#6ee7b7" },
   { col:2, topPx:135, hPx:60,  name:"Decompress",        service:"",                    time:"11:15–12:15", color:"#374151" },
@@ -657,7 +657,7 @@ const APPTS = [
   { col:2, topPx:285, hPx:45,  name:"Emma D.",           service:"IPL Full Leg",        time:"13:45–14:30", color:"#4ade80" },
   { col:2, topPx:345, hPx:120, name:"Niamh T.",          service:"Balayage",            time:"14:45–16:45", color:"#e07b6a" },
   { col:2, topPx:480, hPx:45,  name:"Caroline P.",       service:"Brow Tint",           time:"17:00–17:45", color:"#4ade80" },
-  // Column 3 – Derek McAuley (green)
+  // Column 3 – Padraig Hennessy (green)
   { col:3, topPx:0,   hPx:60,  name:"Ann P.",            service:"Pedicure",            time:"09:00–10:00", color:"#db2777" },
   { col:3, topPx:60,  hPx:60,  name:"Tara M.",           service:"Highlights",          time:"10:00–11:00", color:"#e07b6a" },
   { col:3, topPx:135, hPx:60,  name:"Clare Test2",       service:"Botox 100ml",         time:"11:15–12:15", color:"#86efac" },
@@ -666,7 +666,7 @@ const APPTS = [
   { col:3, topPx:315, hPx:30,  name:"Lunch",             service:"",                    time:"14:15–14:45", color:"#1f2937" },
   { col:3, topPx:360, hPx:90,  name:"Siobhan M.",        service:"Full Head Colour",    time:"15:00–16:30", color:"#e07b6a" },
   { col:3, topPx:465, hPx:60,  name:"Beth O.",           service:"Manicure",            time:"16:45–17:45", color:"#db2777" },
-  // Column 4 – Carolina Michaels (rose)
+  // Column 4 – Niamh Fitzgerald (rose)
   { col:4, topPx:0,   hPx:45,  name:"Jamie F.",          service:"Gents' Cut",          time:"09:00–09:45", color:"#4c1d95" },
   { col:4, topPx:60,  hPx:60,  name:"Maria C.",          service:"Gel Manicure",        time:"10:00–11:00", color:"#db2777" },
   { col:4, topPx:135, hPx:30,  name:"Holly R.",          service:"Fringe Trim",         time:"11:15–11:45", color:"#4c1d95" },
@@ -675,16 +675,16 @@ const APPTS = [
   { col:4, topPx:300, hPx:45,  name:"Test 2",            service:"Cut & Finish",        time:"14:00–14:45", color:"#9f1239" },
   { col:4, topPx:360, hPx:60,  name:"Lucy B.",           service:"Blowdry Special",     time:"15:00–16:00", color:"#a78bfa" },
   { col:4, topPx:435, hPx:60,  name:"Anna B.",           service:"Highlights",          time:"16:15–17:15", color:"#e07b6a" },
-  // Column 5 – Rebecca Fahy (indigo)
+  // Column 5 – Orla Crowley (indigo)
   { col:5, topPx:0,   hPx:105, name:"Raquelle D.",       service:"Full Body Wrap",      time:"09:00–10:45", color:"#1d4ed8" },
   { col:5, topPx:120, hPx:60,  name:"Mei Z.",            service:"Ladies' Cut",         time:"11:00–12:00", color:"#1d4ed8" },
-  { col:5, topPx:195, hPx:45,  name:"Josie Kelly",       service:"BoHo Blowdry",        time:"12:15–13:00", color:"#4c1d95" },
+  { col:5, topPx:195, hPx:45,  name:"Roisin K.",         service:"BoHo Blowdry",        time:"12:15–13:00", color:"#4c1d95" },
   { col:5, topPx:255, hPx:30,  name:"Lunch",             service:"",                    time:"13:15–13:45", color:"#1f2937" },
   { col:5, topPx:300, hPx:60,  name:"Rachel M.",         service:"Lip Filler 1ml",      time:"14:00–15:00", color:"#c084fc" },
   { col:5, topPx:375, hPx:45,  name:"Sile M.",           service:"Wrinkle Relaxer",     time:"15:15–16:00", color:"#86efac" },
   { col:5, topPx:435, hPx:60,  name:"Yvonne F.",         service:"Skin Booster 1ml",    time:"16:15–17:15", color:"#f87171" },
   { col:5, topPx:510, hPx:30,  name:"Quick lash",        service:"Lash Lift",           time:"17:30–18:00", color:"#0f766e" },
-  // Column 6 – Josie Kelly (teal)
+  // Column 6 – Declan Tierney (teal)
   { col:6, topPx:30,  hPx:60,  name:"Aine B.",           service:"Manicure",            time:"09:30–10:30", color:"#db2777" },
   { col:6, topPx:105, hPx:30,  name:"Quick paint",       service:"Manicure top-up",     time:"10:45–11:15", color:"#db2777" },
   { col:6, topPx:150, hPx:60,  name:"Break",             service:"",                    time:"11:30–12:30", color:"#374151" },
